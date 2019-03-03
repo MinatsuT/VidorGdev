@@ -1,0 +1,10 @@
+**/db
+**/.qsys_edit
+**/incremental_db
+**/output_files
+**/*.sopcinfo
+**/*_sys
+distrib/*
+ip/*/rtl/work
+ip/*/rtl/transcript
+TOOLS/makeCompositeBinary/MakeCompositeBinary

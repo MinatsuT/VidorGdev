@@ -1,0 +1,21 @@
+= QUAD ENCODER IP RPC
+
+.Module Definition
+[%autowidth]
+|=====================================================================================================
+|Type        | driver module
+|UID         | 0x0D645
+|IP Version  | 0.0
+|DRV Version | 0.0
+|Channel     | specify the encoder to send commands to
+|=====================================================================================================
+
+.Commands
+[%autowidth]
+|=====================================================================================================
+^|Cmd ^|Description ^|Parameters ^|Return
+
+^|2 ^|Setup    ^|none |RetCod
+^|4 ^|End      ^|none |RetCod
+^|5 ^|encGet   ^|none |Value read from encoder
+|=====================================================================================================

@@ -1,0 +1,200 @@
+= NEOPIXEL IP RPC
+
+
+.Module Definition
+[%autowidth]
+|=====================================================================================================
+|Type        | driver module
+|UID         | 0xA0894
+|IP Version  | 0.0
+|DRV Version | 0.0
+|Channel     | specifies the string to send command to
+|=====================================================================================================
+
+== Configuration options
+
+.Private data structure
+[%autowidth]
+|=====================================================================================================
+^|Field ^|Type ^|Description
+
+|mem_base | unsigned 32bit | memory base address to store LEDs colors
+|mem_size | unsigned 32bit | memory size
+
+|=====================================================================================================
+
+.Options
+[%autowidth]
+|=====================================================================================================
+^|Option ^|Default ^|Description
+
+|NP_USE_TMR   |1                    |Enable scroll and sequence functions
+|NP_GFX       |1                    |Enable graphic to draw
+|NP_CLOCK     |ALT_CPU_FREQ / 1G    |Used to calculate timings
+|=====================================================================================================
+
+== Dependencies
+GFX needed to use graphic commands. +
+TMR needed from npSeqSet and npBufScroll.
+
+== Commands
+.Commands
+[%autowidth]
+|=====================================================================================================
+^|Cmd ^|Description ^|Parameters ^|Return
+
+^|2  |Setup       |leds, type, len, zzf, zzl, flg |RetCod
+^|4  |End         |none                           |RetCod
+^|5  |npTmgSet    |frq, trst, t0h, t1h, ttot      |RetCod
+^|6  |npLedSet    |led, r, g, b, w                |RetCod
+^|7  |npBrgSet    |brightness                     |RetCod
+^|8  |npLedShow   |offset                         |RetCod
+^|9  |npWrapSet   |sAdr, wCnt, wAdr               |RetCod
+^|10 |npSeqSet    |pSeq                           |RetCod
+^|11 |npBufScroll |flg, buf, time                 |RetCod
+|=====================================================================================================
+
+=== Setup
+
+.Setup parameters
+[%autowidth]
+|=====================================================================================================
+^|Parameter      ^|Description
+
+|leds |Number of Leds
+|type |Type of Led
+|len  |Buffer total length, must be greater than or equal of leds number
+|zzf  |ZigZag flag (1: enable, 0: disable)
+|zzl  |ZigZag Len, number of leds after which revert addressing
+|flg  |Flag to pass to gfx for framebuffer
+|=====================================================================================================
+
+=== Type
+32bit integer the LSB byte is color format that carry color component offset in a 32bit word color definition as follow:
+
+[%autowidth]
+|======================================================================================================
+|bit   |description
+
+|0-1   |blue offet in byte
+|2-3   |green offet in byte
+|4-5   |red offet in byte
+|6-7   |white offet in byte
+|9     |frequency: 0-800KHz; 1-400KHz
+|16-31 |APA mode
+|======================================================================================================
+
+[NOTE]
+If the red offset and the white offest is the same the led strip accept 24bit commands if these offset are different, the strip has white led and accept the 32bit commands.
+
+
+
+=== NpTmgSet
+
+.NpTmgSet Parameters
+[%autowidth]
+|======================================================================================================
+^|Parameter      ^|Description
+
+|frq  |Frequecy for which apply followings parameters
+|trst |Reset time
+|t0h  |Zero high time
+|t1h  |One High time
+|ttot |Total time
+|======================================================================================================
+
+[NOTE]
+All time are in ns.
+
+=== NpLedSet
+
+.NpLedSet Parametrs
+[%autowidth]
+|======================================================================================================
+^|Parameter      ^|Description
+
+|led |Number of led to set
+|r   |Red component
+|g   |Green component
+|b   |Blu component
+|w   |White component for Neopixel, Gain for APA
+|======================================================================================================
+
+
+=== NpBrgSet
+.NpBrgSet Parameters
+[%autowidth]
+|======================================================================================================
+^|Parameter      ^|Description
+
+|brightness |Brightness, apply to all subsequent Led Set
+|======================================================================================================
+
+=== NpLedShow
+Refresh Leds
+
+.NpLedShow Parameters
+[%autowidth]
+|======================================================================================================
+^|Parameter      ^|Description
+
+| offset |Address from which to start rendering
+|======================================================================================================
+
+=== NpWrapSet
+.NpWrapSet Parameters
+[%autowidth]
+|======================================================================================================
+^|Parameter      ^|Description
+
+|sAdr |Start address
+|wCnt |Wrap address
+|wAdr |Address where jump after wCnt
+|======================================================================================================
+
+=== NpSeqSet
+.NpSeqSet Parameters
+[%autowidth]
+|======================================================================================================
+^|Parameter      ^|Description
+
+|pSeq            |Pointer to sequence struct
+|======================================================================================================
+
+sequence struct
+typedef struct {
+  alt_u32   flg;
+  alt_u32   num;
+  struct {
+    alt_u32   ms;
+    alt_u16   ofs;
+    alt_u16   sAdr;
+    alt_u16   wCnt;
+    alt_u16   wAdr;
+  }         seq[64];
+}sNpSeq, *psNpSeq;
+
+=== NpBufScroll
+.NpBufScroll Parameters
+[%autowidth]
+|======================================================================================================
+^|Parameter      ^|Description
+
+|flg  | See table 13
+|buf  | not used
+|time | time in ms between iteraction
+|======================================================================================================
+
+
+.Sequence and scroll Parameters
+[%autowidth]
+|======================================================================================================
+^|Memonic             ^|Value     ^|Description
+
+|NP_SEQ_FLG_START      |0x00000001 | Start a sequence
+|NP_SEQ_FLG_STOP       |0x00000002 | Stop a sequence or scroll
+|NP_SEQ_FLG_SINGLE     |0x00000004 | Perform a sequence only once
+|NP_SEQ_FLG_LOOP       |0x00000008 | Perform a sequence continuosly
+|NP_SEQ_FLG_BUF_LOOP   |0x00000010 | Start a scroll
+|NP_SEQ_FLG_INV_LOOP   |0x00000020 | Invert scroll direction
+|======================================================================================================
