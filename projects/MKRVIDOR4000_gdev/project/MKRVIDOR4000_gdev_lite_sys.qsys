@@ -208,6 +208,59 @@
          type = "String";
       }
    }
+   element MKRVIDOR4000_gdev_lite_sys
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone 10 LP";
+         type = "String";
+      }
+   }
+   element MKRVIDOR4000_gdev_lite_sys
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone 10 LP";
+         type = "String";
+      }
+   }
+   element MKRVIDOR4000_gdev_lite_sys
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone 10 LP";
+         type = "String";
+      }
+   }
+   element MKRVIDOR4000_gdev_lite_sys
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone 10 LP";
+         type = "String";
+      }
+   }
+   element VID_MIXER_0
+   {
+      datum _sortIndex
+      {
+         value = "7";
+         type = "int";
+      }
+   }
+   element VID_MIXER_0.AVL
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "8389632";
+         type = "String";
+      }
+   }
    element clk
    {
       datum _sortIndex
@@ -372,9 +425,19 @@
          value = "6";
          type = "int";
       }
+      datum sopceditor_expanded
+      {
+         value = "1";
+         type = "boolean";
+      }
    }
    element pio_0.s1
    {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
       datum baseAddress
       {
          value = "8388608";
@@ -464,6 +527,11 @@
    internal="spi_slave_to_avalon_mm_master_bridge_0.export_0"
    type="conduit"
    dir="end" />
+ <interface
+   name="vid_mixer"
+   internal="VID_MIXER_0.conduit_end"
+   type="conduit"
+   dir="end" />
  <interface name="vidclk" internal="vidclk.in_clk" type="clock" dir="end" />
  <module name="FBST_0" kind="FBST" version="1.0" enabled="1">
   <parameter name="pHRES" value="640" />
@@ -475,10 +543,15 @@
   <parameter name="pVSS" value="490" />
   <parameter name="pVTOTAL" value="525" />
  </module>
- <module name="GFX_HW" kind="GFX_HW" version="1.0" enabled="1">
+ <module name="GFX_HW" kind="GFX" version="1.0" enabled="1">
   <parameter name="pADDRESS_BITS" value="22" />
   <parameter name="pFB_OFFSET" value="614400" />
   <parameter name="pFB_SIZE" value="307200" />
+ </module>
+ <module name="VID_MIXER_0" kind="VID_MIXER" version="1.0" enabled="1">
+  <parameter name="pADDRESS_BITS" value="22" />
+  <parameter name="pPCG_OFFSET" value="0" />
+  <parameter name="pPCG_SIZE" value="262144" />
  </module>
  <module name="clk" kind="clock_source" version="18.1" enabled="1">
   <parameter name="clockFrequency" value="100000000" />
@@ -544,7 +617,12 @@
   <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
  </module>
  <connection kind="avalon" version="18.1" start="GFX_HW.SDRAM" end="sdram.s1">
-  <parameter name="arbitrationPriority" value="16" />
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="18.1" start="VID_MIXER_0.SDRAM" end="sdram.s1">
+  <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
@@ -555,6 +633,15 @@
    end="GFX_HW.AVL">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x00a04400" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="18.1"
+   start="spi_slave_to_avalon_mm_master_bridge_0.avalon_master"
+   end="VID_MIXER_0.AVL">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x00800400" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -583,6 +670,7 @@
    end="spi_slave_to_avalon_mm_master_bridge_0.clk" />
  <connection kind="clock" version="18.1" start="clk.clk" end="pio_0.clk" />
  <connection kind="clock" version="18.1" start="clk.clk" end="GFX_HW.clock" />
+ <connection kind="clock" version="18.1" start="clk.clk" end="VID_MIXER_0.clock" />
  <connection
    kind="clock"
    version="18.1"
@@ -594,8 +682,13 @@
    start="clk.clk_reset"
    end="spi_slave_to_avalon_mm_master_bridge_0.clk_reset" />
  <connection kind="reset" version="18.1" start="clk.clk_reset" end="sdram.reset" />
- <connection kind="reset" version="18.1" start="clk.clk_reset" end="GFX_HW.reset" />
  <connection kind="reset" version="18.1" start="clk.clk_reset" end="pio_0.reset" />
+ <connection kind="reset" version="18.1" start="clk.clk_reset" end="GFX_HW.reset" />
+ <connection
+   kind="reset"
+   version="18.1"
+   start="clk.clk_reset"
+   end="VID_MIXER_0.reset" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.enableEccProtection" value="FALSE" />
  <interconnectRequirement for="$system" name="qsys_mm.insertDefaultSlave" value="FALSE" />
