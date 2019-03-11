@@ -2,19 +2,25 @@
 set TOP_LEVEL_NAME   SCANLINE_tb
 #set LIB              "-L altera_common_sv_packages -L altera_mf_ver"
 set LIB              "-L altera_mf_ver"
+set FLAGS            "-sv -y ../ +incdir+../+ +libext+.v+.sv+"
+set SOURCES          ${TOP_LEVEL_NAME}.sv
+
+if { [ file exists work ] != 1 } then {
+   vlib work
+}
 
 # compile testbench and test program
-eval vlog -sv SCANLINE_tb.sv SCANLINE.sv ram_2port.v pix2fbfifo.v $LIB
+eval vlog $FLAGS $SOURCES $LIB
 
 # load and run simulation
-eval vsim $TOP_LEVEL_NAME $LIB
+eval vsim -msgmode both -displaymsgmode both $TOP_LEVEL_NAME $LIB
 do wave.do
-run 50ns
+run 1us
 
 # alias to re-compile changes made to test program, load and run simulation
 alias rerun {
-   eval vlog -sv SCANLINE_tb.sv SCANLINE.sv ram_2port.v pix2fbfifo.v $LIB
+   eval vlog $FLAGS $SOURCES $LIB
    restart -force
-   run 50ns
+   run 1us
 }
 

@@ -5,6 +5,7 @@
 **/*.sopcinfo
 **/*_sys
 distrib/*
-ip/*/rtl/work
-ip/*/rtl/transcript
+ip/*/rtl/sim_*/work
+ip/*/rtl/sim_*/transcript
+ip/*/rtl/sim_*/*.wlf
 TOOLS/makeCompositeBinary/MakeCompositeBinary

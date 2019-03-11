@@ -18,7 +18,7 @@
 *
 */
 
-module MKRVIDOR4000_top ( 
+module MKRVIDOR4000_top (
          // system signals
          input         iCLK,
          input         iRESETn,
@@ -181,27 +181,29 @@ DVI_OUT (
   );
 
 // SCANLINE
-wire fb_st_start,fb_st_dv,fb_st_ready;
-wire [14:0] fb_st_data;
+wire [14:0] wPIX_RGB;
+wire wPIX_WRITE,wPIX_START,wPIX_FULL;
+wire [14:0] wFB_RGB;
+wire wFB_START,wFB_DATAVALID,wFB_READY;
 SCANLINE (
-  .iPIX_CLK(wMEM_CLK),
-  .iPIX_DATA(),
-  .iPIX_WRITE(),
-  .iPIX_START(),
-  .oPIX_FULL(),
-  
-  .iFB_CLK(wVID_CLK),
-  .oFB_START(fb_st_start),
-  .oFB_DATA(fb_st_data),
-  .oFB_DATAVALID(fb_st_dv),
-  .iFB_READY(fb_st_ready)
-);
+    .iPIX_CLK(wMEM_CLK),
+    .iPIX_RGB(wPIX_RGB),
+    .iPIX_WRITE(wPIX_WRITE),
+    .iPIX_START(wPIX_START),
+    .oPIX_FULL(wPIX_FULL),
+
+    .iFB_CLK(wVID_CLK),
+    .oFB_START(wFB_START),
+    .oFB_RGB(wFB_RGB),
+    .oFB_DATAVALID(wFB_DATAVALID),
+    .iFB_READY(wFB_READY)
+  );
 
 // RESET
 reg [5:0] rRESETCNT;
 always @(posedge wMEM_CLK) begin
   if (!rRESETCNT[5]) begin
-    rRESETCNT<=rRESETCNT+1;
+    rRESETCNT<=rRESETCNT+1'd1;
   end
 end
 
@@ -211,10 +213,15 @@ MKRVIDOR4000_gdev_lite_sys u0 (
                              .reset_reset_n          (rRESETCNT[5]),    // reset.reset_n
                              .vidclk_clk             (wVID_CLK),        //   vid.clk
 
-                             .fb_st_start            (fb_st_start),      //     fb_st.start
-                             .fb_st_data             (fb_st_data),       //          .data
-                             .fb_st_dv               (fb_st_dv),         //          .dv
-                             .fb_st_ready            (fb_st_ready),      //          .ready
+                             .vid_mixer_pix_full     (wPIX_FULL),       // vid_mixer.pix_full
+                             .vid_mixer_pix_rgb      (wPIX_RGB),        //          .pix_rgb
+                             .vid_mixer_pix_start    (wPIX_START),      //          .pix_start
+                             .vid_mixer_pix_write    (wPIX_WRITE),      //          .pix_write
+
+                             .fb_st_start            (wFB_START),    //  fb_st.start
+                             .fb_st_data             (wFB_RGB),      //       .data
+                             .fb_st_dv               (wFB_DATAVALID),//       .dv
+                             .fb_st_ready            (wFB_READY),    //       .ready
 
                              .fb_vport_red           (wDVI_RED),     //      .red
                              .fb_vport_grn           (wDVI_GRN),     //      .grn
@@ -241,5 +248,6 @@ MKRVIDOR4000_gdev_lite_sys u0 (
                              .pio_export             (wPIO)   //       pio.export
 
                            );
+
 
 endmodule
