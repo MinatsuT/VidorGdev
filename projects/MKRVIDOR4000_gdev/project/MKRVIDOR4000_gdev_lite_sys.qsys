@@ -549,9 +549,7 @@
   <parameter name="pFB_SIZE" value="307200" />
  </module>
  <module name="VID_MIXER_0" kind="VID_MIXER" version="1.0" enabled="1">
-  <parameter name="pADDRESS_BITS" value="22" />
-  <parameter name="pPCG_OFFSET" value="0" />
-  <parameter name="pPCG_SIZE" value="262144" />
+  <parameter name="pADDR_BITS" value="22" />
  </module>
  <module name="clk" kind="clock_source" version="18.1" enabled="1">
   <parameter name="clockFrequency" value="100000000" />
@@ -609,7 +607,7 @@
    enabled="1">
   <parameter name="AUTO_CLK_CLOCK_RATE" value="100000000" />
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone 10 LP" />
-  <parameter name="SYNC_DEPTH" value="2" />
+  <parameter name="SYNC_DEPTH" value="5" />
  </module>
  <module name="vidclk" kind="altera_clock_bridge" version="18.1" enabled="1">
   <parameter name="DERIVED_CLOCK_RATE" value="0" />
@@ -649,7 +647,7 @@
    version="18.1"
    start="spi_slave_to_avalon_mm_master_bridge_0.avalon_master"
    end="sdram.s1">
-  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="arbitrationPriority" value="128" />
   <parameter name="baseAddress" value="0x0000" />
   <parameter name="defaultConnection" value="false" />
  </connection>

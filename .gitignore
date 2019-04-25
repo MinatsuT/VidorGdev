@@ -1,11 +1,14 @@
+*~
 **/db
 **/.qsys_edit
 **/incremental_db
 **/output_files
 **/*.sopcinfo
 **/*_sys
+**/.vscode
 distrib/*
 ip/*/rtl/sim_*/work
+ip/*/rtl/sim_*/*_work
 ip/*/rtl/sim_*/transcript
 ip/*/rtl/sim_*/*.wlf
 TOOLS/makeCompositeBinary/MakeCompositeBinary

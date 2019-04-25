@@ -4,114 +4,191 @@
  * Video Mixer for MKR VIDOR 4000
  *
  */
- 
  `timescale 1 ps / 1 ps
- module VID_MIXER #(
-  parameter pPCG_OFFSET = 0,
-  parameter pPCG_SIZE = 512*512,
-  parameter pADDRESS_BITS = 22
-  )(
-  input  wire                     iCLOCK,                 // clock.clk
-  input  wire                     iRESET,                 // reset.reset
+ `include "VID_MIXER.pkg"
+ module VID_MIXER
+  import VidMixer::*;
+  #(
+  parameter pADDR_BITS = 22
+  )
+  (
+  input  wire                  iCLOCK,                 // clock.clk
+  input  wire                  iRESET,                 // reset.reset
   
-  input  wire [7:0]               iAVL_ADDRESS,           //   AVL.address
-  input  wire                     iAVL_READ,              //      .read
-  output wire [31:0]              oAVL_READ_DATA,         //      .readdata
-  input  wire                     iAVL_WRITE,             //      .write
-  input  wire [31:0]              iAVL_WRITE_DATA,        //      .writedata
-  output wire                     oAVL_WAIT_REQUEST,      //      .waitrequest
+  input  wire [7:0]            iAVL_ADDRESS,           //   AVL.address
+  input  wire                  iAVL_READ,              //      .read
+  output wire [31:0]           oAVL_READ_DATA,         //      .readdata
+  input  wire                  iAVL_WRITE,             //      .write
+  input  wire [31:0]           iAVL_WRITE_DATA,        //      .writedata
+  output wire                  oAVL_WAIT_REQUEST,      //      .waitrequest
   
-  output wire [pADDRESS_BITS-1:0] oSDRAM_ADDRESS,         // SDRAM.address
-  output wire                     oSDRAM_READ,            //      .read
-  input  wire                     iSDRAM_WAIT_REQUEST,    //      .waitrequest
-  input  wire [15:0]              iSDRAM_READ_DATA,       //      .readdata
-  output wire                     oSDRAM_WRITE,           //      .write
-  output wire [15:0]              oSDRAM_WRITE_DATA,      //      .writedata
-  input  wire                     iSDRAM_READ_DATA_VALID, //      .readdatavalid
+  output wire [pADDR_BITS-1:0] oSDRAM_ADDRESS,         // SDRAM.address
+  output wire                  oSDRAM_READ,            //      .read
+  input  wire                  iSDRAM_WAIT_REQUEST,    //      .waitrequest
+  input  wire [15:0]           iSDRAM_READ_DATA,       //      .readdata
+  output wire                  oSDRAM_WRITE,           //      .write
+  output wire [15:0]           oSDRAM_WRITE_DATA,      //      .writedata
+  input  wire                  iSDRAM_READ_DATA_VALID, //      .readdatavalid
   
-  output wire                     oPIX_START,
-  output wire [14:0]              oPIX_RGB,
-  output wire                     oPIX_WRITE,
-  input  wire                     iPIX_FULL
+  output wire                  oPIX_START,
+  output wire [14:0]           oPIX_RGB,
+  output wire                  oPIX_WRITE,
+  input  wire                  iPIX_FULL
   );
   
-  localparam cBG_SCREEN_W = 256;
-  localparam cBG_SCREEN_H = 256;
-  localparam cBG_CHR_W = 16;
-  localparam cBG_CHR_H = 16;
-  localparam cSCREEN_SIZE = 65536;
-  
-  wire signed [31:0] wX,wY;
-  wire signed [31:0] wHX1,wHY1,wUX1,wUY1,wVX1,wVY1;
-  wire [pADDRESS_BITS-1:0] wADDR1;
-  wire wREAD1,wVALID1,wBUSY;
-  
   // TODO: Auto-generated HDL template
-  assign oAVL_READ_DATA = 0;
-  assign oAVL_WAIT_REQUEST = iRESET || wBUSY;
-  assign oSDRAM_ADDRESS = 0;
-  assign oSDRAM_READ = 1'b0;
-  assign oSDRAM_WRITE = 0;
-  assign oSDRAM_WRITE_DATA = 0;
+  assign oAVL_READ_DATA = 1'b0;
+  assign oAVL_WAIT_REQUEST = iRESET | rAVL_ACK_n;
+  assign oSDRAM_WRITE = 1'b0;
+  assign oSDRAM_WRITE_DATA = 1'b0;
   
-  // input
-  //wire [cCMD_BITS-1:0] wE_CMD = iAVL_WRITE_DATA[cCMD_BITS-1:0]; // effective CMD
-  //wire [cADDR_BITS-1:0] wE_ADDR = iAVL_ADDRESS[cADDR_BITS-1:0]; // effective ADDR
+  // ================================================================================
+  // working variables
+  // ================================================================================
   
-  logic [31:0] rCOUNT = (320*240-10);
-  assign wX = rCOUNT % 320;
-  assign wY = rCOUNT / 320;
-  wire [4:0] wB = 32 * (wX + wY) / (320+240);
-  wire [4:0] wG = 32 * ((320-1-wX) + wY) / (320+240);
-  wire [4:0] wR = 0;
-  wire [14:0] wRGB = ((wX + wY) & 1'b1) ? {wR, wG, wB} : 0;
-  assign oPIX_RGB = ((wX + wY)==0) ? {5'd31, 5'd0, 5'd0} : wRGB;
-  //assign oPIX_RGB = ((wX + wY)==0) ? 15'b11111_00000_00000 : (wX==0) ? 15'b00000_00000_11111 : (wY==0) ? 15'b00000_11111_00000 : 0;
-  logic rPIX_START = 0;
-  assign oPIX_START = rPIX_START;
-  assign oPIX_WRITE = !iPIX_FULL;
+  // Avalon
+  // --------------------------------------------------------------------------------
+  logic rAVL_ACK_n;
+  always_ff @(posedge iCLOCK) begin
+    rAVL_ACK_n <= (iAVL_WRITE) ? 1'b0 : 1'b1;
+  end
   
-  logic [31:0] rBEGIN_CNT=100000001;
-  always @(posedge iCLOCK) begin
-    if (oPIX_WRITE) begin
-      rPIX_START <= 1'b0;
-      rCOUNT <= rCOUNT + 1;
-      if (rCOUNT==(320*240-1)) begin
-        rPIX_START <= 1'b1;
-      end
-      if (rCOUNT==320*240) begin
-        rCOUNT <= 0;
-      end
-    end
-    
-    rBEGIN_CNT <= rBEGIN_CNT-1;
-    if (rBEGIN_CNT==0) begin
-      //rBEGIN_CNT <= 100000001;
-      //rCOUNT <= (320*240-99);
+  // BG0
+  // --------------------------------------------------------------------------------
+  logic wBG0_OFFSCREEN; // from BG module
+  logic wBG0_RGB_WRITE; // from BG module
+  tRGB wBG0_RGB; // from BG module
+  logic wBG0_READY;
+  assign wBG0_READY = (wBG0_OFFSCREEN | wBG0_RGB_WRITE);
+  
+  // RGB out
+  // assign oPIX_RGB = (wBG0_OFFSCREEN) ? 1'b0 : wBG0_RGB;
+  //assign oPIX_RGB = 15'h00f;
+  always_comb begin
+    if ((rX>160) & (rY>120)) begin
+      oPIX_RGB = 15'h00f;
+    end else begin
+      oPIX_RGB = (wBG0_OFFSCREEN) ? 1'b0 : wBG0_RGB;
     end
   end
   
-  /*
+  // ================================================================================
+  // state machine
+  // ================================================================================
+  // state definition
+  typedef enum logic [1:0] { sPIX_REQ, sPIX_WAIT, sPIX_OUT } tSTATE;
+  
+  // state variables
+  //(* preserve *)
+  tSTATE rSTATE;
+  //(* keep *) 
+  tSTATE wNEXT_STATE;
+  
+  // next state
+  always_comb begin
+    case (rSTATE)
+      sPIX_REQ:  wNEXT_STATE = sPIX_WAIT;
+      sPIX_WAIT: wNEXT_STATE = (wBG0_READY) ? sPIX_OUT : sPIX_WAIT;
+      sPIX_OUT:  wNEXT_STATE = (!iPIX_FULL) ? sPIX_REQ : sPIX_OUT;
+      default: wNEXT_STATE = sPIX_REQ;
+    endcase
+  end
+  
+  // update state
+  always_ff @(posedge iCLOCK) begin
+    if (iRESET) begin
+      rSTATE <= sPIX_REQ;
+    end else begin
+      rSTATE <= wNEXT_STATE;
+    end
+  end
+  
+  // ================================================================================
+  // data path
+  // ================================================================================
+  
+  // output pixel
+  // --------------------------------------------------------------------------------
+  assign oPIX_WRITE = ((rSTATE==sPIX_OUT) & !iPIX_FULL);
+  
+  // BG0
+  // --------------------------------------------------------------------------------
+  logic wBG0_PIX_MOVE;
+  // assign wBG0_PIX_MOVE = (rSTATE==sPIX_WAIT & wNEXT_STATE==sPIX_OUT) ? 1'b1 : 1'b0;
+  assign wBG0_PIX_MOVE = (wNEXT_STATE==sPIX_REQ);
+  logic wBG0_RGB_REQ;
+  assign wBG0_RGB_REQ = (rSTATE==sPIX_REQ) ? 1'b1 : 1'b0;
+  
+  // ================================================================================
+  // transfer counter
+  // ================================================================================
+  logic [cW_WIDTH-1:0] rX = 1'b0;
+  logic [cH_WIDTH-1:0] rY = 1'b0;
+  logic rPIX_START = 1'b0;
+  logic rLINE_START = 1'b0;
+  assign oPIX_START = rPIX_START;
+  always_ff @(posedge iCLOCK) begin
+    if (iRESET) begin
+      rX <= 1'b0;
+      rY <= 1'b0;
+      rPIX_START <= 1'b1;
+      rLINE_START <= 1'b0;
+    end else if (wNEXT_STATE==sPIX_REQ) begin
+      rPIX_START <= 1'b0;
+      rLINE_START <= 1'b0;
+      rX <= rX + 1'b1;
+      if (rX == cW-1) begin
+        rX <= 1'b0;
+        rLINE_START <= 1'b1;
+        rY <= rY + 1'b1;
+        if (rY == cH-1) begin
+          rPIX_START <= 1'b1;
+          // Don't reset rY here. rY is reset after start pixel is sent.
+        end
+      end
+      if (rPIX_START) begin // start pixel is a pseude pixel which is not displayed.
+        rX <= 1'b0;
+        rY <= 1'b0;
+      end
+    end
+  end
+  
+  // Counter for check
+  // ----------------------------------------
+  (* noprune *) logic [31:0] rCHECK_COUNTER;
+  always_ff @(posedge iCLOCK) begin
+    if (iRESET) begin
+      rCHECK_COUNTER <= 1'b0;
+    end else if (oPIX_WRITE) begin
+      rCHECK_COUNTER <= (rPIX_START) ? 1'b0 : rCHECK_COUNTER + 1'b1;
+    end
+  end
+  
+  // ----------------------------------------
+  //
+  // BG renderer
+  //
+  // ----------------------------------------
   BG #(
-  .addr     (pPCG_OFFSET+pPCG_SIZE+cSCREEN_SIZE*0),
-  .screen_w (cBG_SCREEN_W),
-  .screen_h (cBG_SCREEN_H),
-  .chr_w    (cBG_CHR_W),
-  .chr_h    (cBG_CHR_H)
-  ) BG1 (
-  .clk   (iCLOCK),
-  .x     (wX),
-  .y     (wY),
-  .hx    (wHX1),
-  .hy    (wHY1),
-  .ux    (wUX1),
-  .uy    (wUY1),
-  .vx    (wVX1),
-  .vy    (wVY1),
-  .addr  (wADDR1),
-  .read  (wREAD1),
-  .valid (wVALID1)
+  .pBG_NUM(0)
+  ) BG0 (
+  .iCLOCK(iCLOCK),                                // clock
+  .iRESET(iRESET),                                // reset
+  .iPIX_MOVE(wBG0_PIX_MOVE),                         // move pix pos to next
+  .iSTART(rPIX_START),                            // Scan start signal
+  .iLINE_START(rLINE_START),                      // Line start signal
+  .iRGB_REQ(wBG0_RGB_REQ),                          // request for next RGB
+  .iREG_ADDR(iAVL_ADDRESS[2:0]),                  // register addr
+  .iREG_DATA(iAVL_WRITE_DATA),                    // register data
+  .iREG_WRITE(iAVL_WRITE),                        // register write
+  .oOFFSCREEN(wBG0_OFFSCREEN),                    // offscreen flag
+  .oRGB_WRITE(wBG0_RGB_WRITE),                    // RGB write strobe
+  .oRGB_WRITE_DATA(wBG0_RGB),                     // RGB data
+  .oSDRAM_ADDRESS(oSDRAM_ADDRESS),                // SDRAM.address
+  .oSDRAM_READ(oSDRAM_READ),                      //      .read
+  .iSDRAM_WAIT_REQUEST(iSDRAM_WAIT_REQUEST),      //      .waitrequest
+  .iSDRAM_READ_DATA(iSDRAM_READ_DATA),            //      .readdata
+  .iSDRAM_READ_DATA_VALID(iSDRAM_READ_DATA_VALID) //      .readdatavalid
   );
-  */
   
 endmodule

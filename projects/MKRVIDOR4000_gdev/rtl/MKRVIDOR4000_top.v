@@ -120,15 +120,15 @@ module MKRVIDOR4000_top (
 
 // signal declaration
 // Clocks
-wire wCLK8 = iCLK;
+wire wCLK48 = iCLK;
 
 // System PLL
 wire        wMEM_CLK;
 SYSTEM_PLL PLL_inst_sys (
              .areset(1'b0),
-             .inclk0(wCLK8),
-             .c2(wMEM_CLK),   // 143MHz for NIOS II
-             .c3(oSDRAM_CLK),// 143MHz for SDRAM 180deg phase
+             .inclk0(wCLK48),
+             .c2(wMEM_CLK),   // 140MHz for NIOS II
+             .c3(oSDRAM_CLK), // 140MHz for SDRAM 180deg phase
              .locked());
 
 // VID PLL
@@ -138,7 +138,7 @@ assign wVID_CLK   = wCLK24;
 assign wVID_CLKx5 = wCLK120;
 VID_PLL PLL_inst_vid (
           .areset(1'b0),
-          .inclk0(wCLK8),
+          .inclk0(wCLK48),
           .c0(wCLK24),     // for VID
           .c1(wCLK120),    // for VID
           .c4(wFLASH_CLK),
@@ -201,9 +201,13 @@ SCANLINE (
 
 // RESET
 reg [5:0] rRESETCNT;
+assign bMKR_D[6] = 1'bz;
 always @(posedge wMEM_CLK) begin
   if (!rRESETCNT[5]) begin
     rRESETCNT<=rRESETCNT+1'd1;
+  end
+  if (bMKR_D[6]) begin // soft reset
+    rRESETCNT <= 6'd0;
   end
 end
 
