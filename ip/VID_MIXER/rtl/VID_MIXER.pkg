@@ -1,7 +1,8 @@
 `ifndef VID_MIXER_PKG_DEFINED
 `define VID_MIXER_PKG_DEFINED
 package VidMixer;
-    localparam cADDR_BITS = 22;
+    //localparam cADDR_BITS = 22;
+    localparam cADDR_BITS = 23;
 
     localparam cNUM_GRP = 2;
     localparam cNUM_BG = 2;
@@ -23,9 +24,8 @@ package VidMixer;
     localparam cCHR_SIZE = cCHR_W * cCHR_H;
     localparam cCHR_WORDS = 1 * cCHR_SIZE;
 
-    localparam cPCG_W = 16;
-    localparam cPCG_H = 16;
-    localparam cPCG_SIZE = cPCG_W * cPCG_H;
+    localparam cPCG_SIZE = 64;
+    localparam cPCG_SIZE_WIDTH = $clog2(cPCG_SIZE);
     localparam cPCG_WORDS = cCHR_WORDS * cPCG_SIZE;
 
     localparam cBG_W = 256;
@@ -39,8 +39,10 @@ package VidMixer;
     localparam cSCR_H = cCHR_H * cBG_H;
 
     localparam cGRP_ADDR = 0;
-    localparam cPCG_ADDR = cGRP_ADDR + (cGRP_WORDS * cNUM_GRP);
-    localparam cBG_SCR_ADDR = cPCG_ADDR + cPCG_WORDS;
+    //localparam cPCG_ADDR = cGRP_ADDR + (cGRP_WORDS * cNUM_GRP);
+    localparam cPCG_ADDR = (24'h900000>>1);
+    //localparam cBG_SCR_ADDR = cPCG_ADDR + cPCG_WORDS;
+    localparam cBG_SCR_ADDR = cGRP_ADDR + (cGRP_WORDS * cNUM_GRP);
 
     // ================================================================================
     // data types
@@ -59,7 +61,7 @@ package VidMixer;
 
     // PCG
     // --------------------------------------------------------------------------------
-    typedef logic [15:0] tPCG;
+    typedef logic [cPCG_SIZE_WIDTH-1:0] tPCG;
 
     // fixed point coodinate
     // --------------------------------------------------------------------------------

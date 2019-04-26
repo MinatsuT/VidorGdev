@@ -6,8 +6,8 @@
  */
  `timescale 1 ps / 1 ps
  `include "VID_MIXER.pkg"
+ import VidMixer::*;
  module BG 
-    import VidMixer::*;
     #(
     parameter pBG_NUM = 0
     )
@@ -70,7 +70,7 @@
                 endcase
             end
         end
-    end
+    end 
     
     // ================================================================================
     // working variables
@@ -166,32 +166,57 @@
     
     // SDRAM address
     // --------------------------------------------------------------------------------
-    always_comb begin
-        case (wNEXT_STATE)
-            sRD_PCG:   oSDRAM_ADDRESS = wPCG_ADDR;
-            sRDWT_PCG: oSDRAM_ADDRESS = wPCG_ADDR;
-            default:   oSDRAM_ADDRESS = wSCR_ADDR;
-        endcase
+    tADDR rSDRAM_ADDRESS;
+    assign oSDRAM_ADDRESS = rSDRAM_ADDRESS;
+    always_ff @(posedge iCLOCK) begin
+        if (wNEXT_STATE==sRD_SCR) begin
+            rSDRAM_ADDRESS <= wSCR_ADDR;
+        end
+        if (wNEXT_STATE==sRD_PCG) begin
+            rSDRAM_ADDRESS <= wPCG_ADDR;
+        end
     end
+    // always_comb begin
+    //     case (wNEXT_STATE)
+    //         sRD_PCG:   oSDRAM_ADDRESS = wPCG_ADDR;
+    //         sRDWT_PCG: oSDRAM_ADDRESS = wPCG_ADDR;
+    //         default:   oSDRAM_ADDRESS = wSCR_ADDR;
+    //     endcase
+    // end
     
     // SDRAM read request
     // --------------------------------------------------------------------------------
-    logic wSDRAM_READ;
-    assign oSDRAM_READ = wSDRAM_READ;
-    always_comb begin
-        case (wNEXT_STATE)
-            sRD_SCR:   wSDRAM_READ = 1'b1;
-            sRDWT_SCR: wSDRAM_READ = 1'b1;
-            sRD_PCG:   wSDRAM_READ = 1'b1;
-            sRDWT_PCG: wSDRAM_READ = 1'b1;
-            default:   wSDRAM_READ = 1'b0;
-        endcase
+    logic rSDRAM_READ;
+    assign oSDRAM_READ = rSDRAM_READ;
+    always_ff @(posedge iCLOCK) begin
+        if (rSDRAM_READ & !iSDRAM_WAIT_REQUEST) begin
+            rSDRAM_READ <= 1'b0;
+        end
+        if (wNEXT_STATE==sRD_SCR) begin
+            rSDRAM_READ <= 1'b1;
+        end
+        if (wNEXT_STATE==sRD_PCG) begin
+            rSDRAM_READ <= 1'b1;
+        end
     end
+    // logic wSDRAM_READ;
+    // assign oSDRAM_READ = wSDRAM_READ;
+    // always_comb begin
+    //     case (wNEXT_STATE)
+    //         sRD_SCR:   wSDRAM_READ = 1'b1;
+    //         sRDWT_SCR: wSDRAM_READ = 1'b1;
+    //         sRD_PCG:   wSDRAM_READ = 1'b1;
+    //         sRDWT_PCG: wSDRAM_READ = 1'b1;
+    //         default:   wSDRAM_READ = 1'b0;
+    //     endcase
+    // end
     
     // PCG data
     // --------------------------------------------------------------------------------
     always_ff @(posedge iCLOCK) begin
-        if (wNEXT_STATE==sRD_PCG) rPCG <= iSDRAM_READ_DATA;
+        if (wNEXT_STATE==sRD_PCG) begin
+            rPCG <= iSDRAM_READ_DATA;
+        end 
     end
     
     // RGB data and write
@@ -207,3 +232,4 @@
     end
     
 endmodule
+

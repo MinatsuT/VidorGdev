@@ -41,8 +41,10 @@
 #define cBG_WORDS (1 * cBG_SIZE)
 
 #define cGRP_ADDR (0)
-#define cPCG_ADDR (cGRP_ADDR + (cGRP_WORDS * cNUM_GRP))
-#define cBG_SCR_ADDR (cPCG_ADDR + cPCG_WORDS)
+// #define cPCG_ADDR (cGRP_ADDR + (cGRP_WORDS * cNUM_GRP))
+#define cPCG_ADDR (0x900000 / 2)
+// #define cBG_SCR_ADDR (cPCG_ADDR + cPCG_WORDS)
+#define cBG_SCR_ADDR (cGRP_ADDR + (cGRP_WORDS * cNUM_GRP))
 
 #define PCG (cPCG_ADDR * 2)
 #define BG0 (cBG_SCR_ADDR * 2)
@@ -112,8 +114,8 @@ void loop() {
   Serial.print("SCR_ADDR/2=");
   Serial.println(cBG_SCR_ADDR, HEX);
 
-  //AvalonMM.write32(0, BG_REG_BASE + BG_REG_OX, fp2q(1000.5));
-  //AvalonMM.write32(0, BG_REG_BASE + BG_REG_OY, fp2q(1000.5));
+  // AvalonMM.write32(0, BG_REG_BASE + BG_REG_OX, fp2q(1000.5));
+  // AvalonMM.write32(0, BG_REG_BASE + BG_REG_OY, fp2q(1000.5));
 
   // AvalonMM.write32(0, BG_REG_BASE + BG_REG_UX, fp2q(1.0/8.0));
   // AvalonMM.write32(0, BG_REG_BASE + BG_REG_UY, fp2q(0));
@@ -130,24 +132,28 @@ void loop() {
       break;
     }
     USBBlaster.loop();
-
+    serialCheck();
+    
     // Serial.print("PIO 1=");
     // Serial.print(AvalonMM.write(0, PIO_IO, 1));
-    // blasterWait(10);
+    AvalonMM.write(0, PIO_IO, 1);
+    blasterWait(20);
     // Serial.print(" ");
     // Serial.print("PIO 0=");
     // Serial.print(AvalonMM.write(0, PIO_IO, 0));
-    // blasterWait(10);
+    AvalonMM.write(0, PIO_IO, 0);
+    blasterWait(20);
 
     // Serial.print(" count=");
     // Serial.print(reset_count);
     // Serial.print(" t=");
 
-    // Serial.println(reset_count);
+    Serial.println(reset_count);
     // writeREG(reset_count);
-    writeREG(365);
+    // writeREG(365);
 
-    blasterWait(50);
+    setDisp(reset_count);
+
     // blasterWait(100);
 
     // if (reset_count >= 50) {
@@ -170,21 +176,33 @@ void blasterWait(int n) {
   }
 }
 
-void writeREG(int32_t d) {
+void setDisp(int32_t d) {
   int32_t t = 360 - abs(360 - (d % 720));
-  // Serial.println(t);
-  float mag = 1.0 / powf(1.01, t - 30.0);
+  float mag = powf(1.02, t - 180.0);
   float th = d * 2 * PI / 360.0;
-  float vx = cos(th) * mag;
-  float vy = sin(th) * mag;
-  // Serial.println(AvalonMM.write32(0, BG_REG_BASE + BG_REG_UX, fp2q(vx)));
-  // Serial.println(AvalonMM.write32(0, BG_REG_BASE + BG_REG_UY, fp2q(vy)));
-  // Serial.println(AvalonMM.write32(0, BG_REG_BASE + BG_REG_VX, fp2q(-vy)));
-  // Serial.println(AvalonMM.write32(0, BG_REG_BASE + BG_REG_VY, fp2q(vx)));
-  AvalonMM.write32(0, BG_REG_BASE + BG_REG_UX, fp2q(vx));
-  AvalonMM.write32(0, BG_REG_BASE + BG_REG_UY, fp2q(vy));
-  AvalonMM.write32(0, BG_REG_BASE + BG_REG_VX, fp2q(-vy));
-  AvalonMM.write32(0, BG_REG_BASE + BG_REG_VY, fp2q(vx));
+
+  bgset(2048, 2048, 320/2, 240/2, th, mag);
+}
+
+void bgset(float mapx, float mapy, float hx, float hy, float th, float mag) {
+  if (mag == 0) {
+    return;
+  }
+
+  float ux = cos(th) / mag;
+  float uy = sin(th) / mag;
+  float vx = -uy;
+  float vy = ux;
+
+  float ox = mapx - hx*ux - hy*vx;
+  float oy = mapy - hx*uy - hy*vy;
+
+  AvalonMM.write32(0, BG_REG_BASE + BG_REG_OX, fp2q(ox));
+  AvalonMM.write32(0, BG_REG_BASE + BG_REG_OY, fp2q(oy));
+  AvalonMM.write32(0, BG_REG_BASE + BG_REG_UX, fp2q(ux));
+  AvalonMM.write32(0, BG_REG_BASE + BG_REG_UY, fp2q(uy));
+  AvalonMM.write32(0, BG_REG_BASE + BG_REG_VX, fp2q(vx));
+  AvalonMM.write32(0, BG_REG_BASE + BG_REG_VY, fp2q(vy));
 }
 
 int32_t fp2q(float f) {

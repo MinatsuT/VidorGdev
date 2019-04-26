@@ -6,8 +6,8 @@
  */
  `timescale 1 ps / 1 ps
  `include "VID_MIXER.pkg"
+ import VidMixer::*;
  module VID_MIXER
-  import VidMixer::*;
   #(
   parameter pADDR_BITS = 22
   )
@@ -65,8 +65,9 @@
   // assign oPIX_RGB = (wBG0_OFFSCREEN) ? 1'b0 : wBG0_RGB;
   //assign oPIX_RGB = 15'h00f;
   always_comb begin
-    if ((rX>160) & (rY>120)) begin
-      oPIX_RGB = 15'h00f;
+    // if ((rX>160) & (rY>120)) begin
+    if ((rX==160) | (rY==120)) begin
+      oPIX_RGB = 15'b000001111100000;
     end else begin
       oPIX_RGB = (wBG0_OFFSCREEN) ? 1'b0 : wBG0_RGB;
     end

@@ -133,7 +133,7 @@ SYSTEM_PLL PLL_inst_sys (
 
 // VID PLL
 wire        wCLK24, wCLK120;
-wire        wVID_CLK, wVID_CLKx5;
+wire        wVID_CLK, wVID_CLKx5, wFLASH_CLK;
 assign wVID_CLK   = wCLK24;
 assign wVID_CLKx5 = wCLK120;
 VID_PLL PLL_inst_vid (

@@ -6,6 +6,7 @@
 **/*.sopcinfo
 **/*_sys
 **/.vscode
+**/*.code-workspace
 distrib/*
 ip/*/rtl/sim_*/work
 ip/*/rtl/sim_*/*_work
