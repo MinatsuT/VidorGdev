@@ -2,6 +2,12 @@
 #include "Blaster.h"
 //#include "VidorJTAG.h"
 
+// 9 chrs
+#include "mapchip_light.h"
+
+// 200x200 map
+#include "map1.h"
+
 #define PIO_BASE (0x00800000)
 #define PIO_IO (0x00800000 + 0)
 #define PIO_DIR (0x00800000 + 4)
@@ -82,7 +88,6 @@ void loop() {
     serialCheck();
   } while (AvalonMM.read(0, 0x00000010) == 0xffff);
   // AvalonMM.spi_debug = 0;
-
   Serial.println("FPGA comes up");
 
   AvalonMM.write(0, 0x00000000, 0x00);
@@ -90,24 +95,43 @@ void loop() {
   AvalonMM.write(0, 0x00000000, 0x12);
   AvalonMM.memoryDump(0x00000000, 0x100);
 
+  bgset(2048, 2048, 320 / 2, 240 / 2, 0, 1 / 14.5);
+
   AvalonMM.write(0, PIO_DIR, PIO_DIR_OUT);
+  for (int i = 0; i < 16 * 16 * 9; i++) {
+    AvalonMM.write16(0, PCG + i * 2, mapchip_light[i]);
+    USBBlaster.loop();
+  }
+  // for (int y = 0; y < 16; y++) {
+  //   for (int x = 0; x < 16; x++) {
+  //     uint32_t addr = PCG + (y * 16 + x) * 2;
+  //     AvalonMM.write16(0, addr, 0x8000 | (x + y) + ((x + y) % 2) * 0b000000011100000);
+  //     USBBlaster.loop();
+  //   }
+  // }
+  // AvalonMM.write16(0, PCG, 0x8000 | 0b111110000000000);
 
-  for (int y = 0; y < 16; y++) {
-    for (int x = 0; x < 16; x++) {
-      uint32_t addr = PCG + (y * 16 + x) * 2;
-      AvalonMM.write16(0, addr, 0x8000 | (x + y) + ((x + y) % 2) * 0b000000011100000);
+  // for (int y = 0; y < 256; y++) {
+  //   for (int x = 0; x < 256; x++) {
+  //     uint32_t addr = BG0 + (y * 256 + x) * 2;
+  //     AvalonMM.write16(0, addr, 0);
+  //     USBBlaster.loop();
+  //   }
+  // }
+  for (int y = 0; y < 200; y++) {
+    for (int x = 0; x < 200; x++) {
+      uint32_t addr = BG0 + ((y + 26) * 256 + (x + 26)) * 2;
+      AvalonMM.write16(0, addr, map1[y * 200 + x]);
       USBBlaster.loop();
     }
   }
-  AvalonMM.write16(0, PCG, 0x8000 | 0b111110000000000);
-
-  for (int y = 0; y < 16; y++) {
-    for (int x = 0; x < 16; x++) {
-      uint32_t addr = BG0 + (y * 256 + x) * 2;
-      AvalonMM.write16(0, addr, 0);
-      USBBlaster.loop();
-    }
-  }
+  // for (int y = 0; y < 16; y++) {
+  //   for (int x = 0; x < 16; x++) {
+  //     uint32_t addr = BG0 + (y * 256 + x) * 2;
+  //     AvalonMM.write16(0, addr, 0);
+  //     USBBlaster.loop();
+  //   }
+  // }
 
   Serial.print("PCG_ADDR/2=");
   Serial.println(cPCG_ADDR, HEX);
@@ -133,7 +157,7 @@ void loop() {
     }
     USBBlaster.loop();
     serialCheck();
-    
+
     // Serial.print("PIO 1=");
     // Serial.print(AvalonMM.write(0, PIO_IO, 1));
     AvalonMM.write(0, PIO_IO, 1);
@@ -176,12 +200,29 @@ void blasterWait(int n) {
   }
 }
 
+static float deg = 0;
+static float mag = 0;
 void setDisp(int32_t d) {
-  int32_t t = 360 - abs(360 - (d % 720));
-  float mag = powf(1.02, t - 180.0);
-  float th = d * 2 * PI / 360.0;
+  deg += 0.2;
+  // if (deg > 360) {
+  //   deg -= 360;
+  // }
+  float th = deg * PI / 180.0;
 
-  bgset(2048, 2048, 320/2, 240/2, th, mag);
+  mag += 0.3;
+  if (mag > 200) {
+    mag -= 200;
+  }
+
+  float t = 100.0 - abs(100.0 - mag);
+  // float mag = powf(2.0, - (t / 100.0) * 5.0);
+  float z = 320 * 4 * (t / 100.0) - 160.0;
+  float mag = 320.0 / (320.0 + z);
+
+  float px = 2048 + cos(th * 0.7) * 16 * 50;
+  float py = 2048 + sin(th) * 16 * 50;
+  // bgset(2048, 2048, 320 / 2, 240 / 2, th, mag);
+  bgset(px, py, 320 / 2, 240 / 2, th + PI, mag);
 }
 
 void bgset(float mapx, float mapy, float hx, float hy, float th, float mag) {
@@ -194,8 +235,8 @@ void bgset(float mapx, float mapy, float hx, float hy, float th, float mag) {
   float vx = -uy;
   float vy = ux;
 
-  float ox = mapx - hx*ux - hy*vx;
-  float oy = mapy - hx*uy - hy*vy;
+  float ox = mapx - hx * ux - hy * vx;
+  float oy = mapy - hx * uy - hy * vy;
 
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_OX, fp2q(ox));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_OY, fp2q(oy));
