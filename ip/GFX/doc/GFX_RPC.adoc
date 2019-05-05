@@ -1,0 +1,75 @@
+= GFX SW RPC
+
+.Module Definition
+[%autowidth]
+|=====================================================================================================
+|Type    | software module
+|UID     | 0x84B11
+|Version | 0.0.0.0
+|Channel | specify the graphic context (see Note 1)
+|=====================================================================================================
+
+[NOTE]
+The channel field in RPC command identify graphic context as follow: +
+0 - video out; +
+1 - camera in; +
+the following numbers identify the neopixel graphic context, 2 is first string as assigned in config.
+
+
+== Configuration options
+
+.Private data structure
+[%autowidth]
+|=====================================================================================================
+^|Field ^|Type ^|Description
+
+|cam_base | unsigned 32bit | store camera frame buffer address
+|fb_base  | unsigned 32bit | store video out frame buffer address
+
+|=====================================================================================================
+
+
+.Options
+[%autowidth]
+|=====================================================================================================
+^|Option ^|Default ^|Description
+
+|GFX_FB_WIDTH   |640 |
+|GFX_FB_HEIGHT  |480 |
+|GFX_FONTS      |1         |
+|GFX_FONT_FILE  |Org_01.h  |
+|GFX_FONT_NAME  |Org_01    |
+|GFX_LOGO       |0         |
+|GFX_LOGO_FILE  |logo.h    |
+|GFX_LOGO_NAME  |arduinoLogo |
+|=====================================================================================================
+
+== Commands
+
+.Commands
+[%autowidth]
+|=====================================================================================================
+^|Cmd ^|Description ^|Parameters ^|Return
+
+^| 2 ^|Setup            ^|none                  |RetCod
+^| 4 ^|End              ^|none                  |RetCod
+^| 5 ^|writePixel       ^|x, y, color           |RetCod
+^| 6 ^|writeLine        ^|x0, y0, x1, y1, color |RetCod
+^| 7 ^|drawRect         ^|x, y, w, h, color     |RetCod
+^| 8 ^|fillRect         ^|x, y, w, h, color     |RetCod
+^| 9 ^|drawCircle       ^|x, y, r, color        |RetCod
+^|10 ^|fillCircle       ^|x, y, r, color        |RetCod
+^|11 ^|drawChar         ^|x, y, color, size, c  |Width of drawed char
+^|12 ^|drawTxt          ^|x, y, color, txt      |Width of drawed text
+^|13 ^|setFont          ^|font index            |RetCod
+^|14 ^|setCursor        ^|x, y                  |RetCod
+^|15 ^|setTextSize      ^|Size                  |RetCod
+^|16 ^|setTextColor     ^|Color (RGB24)         |RetCod
+^|17 ^|setTextAlpha     ^|Alpha                 |RetCod
+^|18 ^|drawCharAtCursor ^|Char                  |RetCod
+|=====================================================================================================
+
+
+=== Setup
+Initialize graphic contexts for camera and video out, if it is defined GFX_LOGO draw the logo specified by GFX_LOGO_NAME and GFX_LOGO_FILE. +
+If it is defined NP_GFX in Neopixel module setup also start a graphic context for each neopixel string defined by NEOPIXEL_0_CHANNELS.

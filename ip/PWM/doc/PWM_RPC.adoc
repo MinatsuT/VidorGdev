@@ -1,0 +1,45 @@
+= PWM IP RPC
+
+.Module Definition
+
+[%autowidth]
+|=====================================================================================================
+|Type        | driver module
+|UID         | 0x08A55
+|IP Version  | 0.0
+|DRV Version | 0.0
+|Channel     | specify the pin to send commands to
+|=====================================================================================================
+
+.Commands
+[%autowidth]
+|=====================================================================================================
+^|Cmd ^|Description ^|Parameters ^|Return
+
+^|2 ^|Setup     ^|none              |RetCod
+^|4 ^|End       ^|none              |RetCod
+^|5 ^|PwmFrqSet ^|Prescaler, Period |RetCod
+^|6 ^|PwmWrite  ^|MatchH, MatchL    |RetCod
+|=====================================================================================================
+
+== PwmFrqSet
+
+.PwmFrqSet Parameters
+[%autowidth]
+|======================================================================================================
+^|Parameter      ^|Description
+
+^|Prescaler |Prescaler value
+^|Period    |PWM Counter period
+|======================================================================================================
+
+== PwmWrite
+
+.PwmWrite Parameters
+[%autowidth]
+|======================================================================================================
+^|Parameter      ^|Description
+
+^|MatchH |PWM counter value at which output is set high
+^|MatchL |PWM counter value at which output is set low
+|======================================================================================================

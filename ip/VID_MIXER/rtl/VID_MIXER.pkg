@@ -1,0 +1,101 @@
+`ifndef VID_MIXER_PKG_DEFINED
+`define VID_MIXER_PKG_DEFINED
+package VidMixer;
+    //localparam cADDR_BITS = 22;
+    localparam cADDR_BITS = 23;
+
+    localparam cNUM_GRP = 2;
+    localparam cNUM_BG = 2;
+
+    localparam cW = 320;
+    localparam cH = 240;
+    localparam cW_WIDTH = $clog2(cW);
+    localparam cH_WIDTH = $clog2(cH);
+
+    localparam cGRP_W = cW;
+    localparam cGRP_H = cH;
+    localparam cGRP_SIZE = cGRP_W * cGRP_H;
+    localparam cGRP_WORDS = 1 * cGRP_SIZE;
+
+    localparam cCHR_W = 16;
+    localparam cCHR_H = 16;
+    localparam cCHR_W_WIDTH = $clog2(cCHR_W);
+    localparam cCHR_H_WIDTH = $clog2(cCHR_H);
+    localparam cCHR_SIZE = cCHR_W * cCHR_H;
+    localparam cCHR_WORDS = 1 * cCHR_SIZE;
+
+    localparam cPCG_SIZE = 64;
+    localparam cPCG_SIZE_WIDTH = $clog2(cPCG_SIZE);
+    localparam cPCG_WORDS = cCHR_WORDS * cPCG_SIZE;
+
+    localparam cBG_W = 256;
+    localparam cBG_H = 256;
+    localparam cBG_W_WIDTH = $clog2(cBG_W);
+    localparam cBG_H_WIDTH = $clog2(cBG_H);
+    localparam cBG_SIZE = cBG_W * cBG_H;
+    localparam cBG_WORDS = 1 * cBG_SIZE;
+
+    localparam cSCR_W = cCHR_W * cBG_W;
+    localparam cSCR_H = cCHR_H * cBG_H;
+
+    localparam cGRP_ADDR = 0;
+    //localparam cPCG_ADDR = cGRP_ADDR + (cGRP_WORDS * cNUM_GRP);
+    localparam cPCG_ADDR = (24'h900000>>1);
+    //localparam cBG_SCR_ADDR = cPCG_ADDR + cPCG_WORDS;
+    localparam cBG_SCR_ADDR = cGRP_ADDR + (cGRP_WORDS * cNUM_GRP);
+
+    // ================================================================================
+    // data types
+    // ================================================================================
+
+    // address
+    // --------------------------------------------------------------------------------
+    typedef logic [cADDR_BITS-1:0] tADDR;
+
+    // RGB
+    // --------------------------------------------------------------------------------
+    typedef logic [15:0] tRGB;
+    function logic RGB_A(tRGB rgb);
+        RGB_A = rgb[15:15];
+    endfunction
+
+    // PCG
+    // --------------------------------------------------------------------------------
+    typedef logic [cPCG_SIZE_WIDTH-1:0] tPCG;
+
+    // fixed point coodinate
+    // --------------------------------------------------------------------------------
+    localparam cQI = 20; // fixed point: integer part bits (including sign bit)
+    localparam cQF = 12; // fixed point: fractional part bits
+
+    typedef logic signed [31:0] tCOORD;
+    typedef logic signed [cQI-1:0] tCOORD_I;
+
+    function tCOORD Q_int(tCOORD x);
+        return x>>>cQF;
+    endfunction
+
+    // 2D vector
+    // --------------------------------------------------------------------------------
+    typedef struct {
+        tCOORD x;
+        tCOORD y;
+    } tVEC_2D;
+
+    function tVEC_2D VEC_2D_add(tVEC_2D a, tVEC_2D b);
+        VEC_2D_add.x = a.x + b.x;
+        VEC_2D_add.y = a.y + b.y;
+    endfunction
+
+    typedef struct {
+        tCOORD_I x;
+        tCOORD_I y;
+    } tVEC_2D_I;
+
+    function tVEC_2D_I VEC_2D_int(tVEC_2D v);
+        VEC_2D_int.x = Q_int(v.x);
+        VEC_2D_int.y = Q_int(v.y);
+    endfunction
+
+endpackage
+`endif

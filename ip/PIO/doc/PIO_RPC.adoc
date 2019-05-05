@@ -1,0 +1,62 @@
+= PIO IP RPC
+
+.Module Definition
+[%autowidth]
+|=====================================================================================================
+|Type        | driver module
+|UID         | 0xE0C45
+|IP Version  | 0.0
+|DRV Version | 0.0
+|Channel     | specify the pin to send commands to
+|=====================================================================================================
+
+[NOTE]
+For all devices connected to the FPGA that have fixed pins another
+specific ip is defined with UID 0xE0C46. +
+This device cannot be used from user. +
+Fixed pins are specific for project.
+
+.Commands
+[%autowidth]
+|=====================================================================================================
+^|Cmd ^|Description ^|Parameters ^|Return
+
+^|2 ^|Setup   ^|none          |RetCod
+^|4 ^|End     ^|none          |RetCod
+^|5 ^|PinMode ^|Mux, Dir, Val |RetCod
+^|6 ^|Write   ^|Value         |RetCod
+^|7 ^|Read    ^|none          |Value of pin
+|=====================================================================================================
+
+=== PinMode
+Set pin configuration
+
+.PinMode Parameters
+[%autowidth]
+|======================================================================================================
+^|Parameter      ^|Description
+
+^|Mux |Mux Mode (See Table 4)
+^|Dir |Direction of pin in GPIO mode: 1-Out; 0-In.
+^|Val |Value to set to pin when in output mode
+|======================================================================================================
+
+.Mux mode
+[%autowidth]
+|=====================================================================================================
+^|Value     ^|Description
+
+^|0 ^|GPIO
+^|1 ^|PWM
+^|2 ^|AUX1
+^|3 ^|AUX2
+|=====================================================================================================
+
+[NOTE]
+AUX1 and AUX2 are specific for FPGA release.
+
+=== Write
+Write value on pin.
+
+=== Read
+Return value of pin.
