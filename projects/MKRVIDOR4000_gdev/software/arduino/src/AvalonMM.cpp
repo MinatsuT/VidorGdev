@@ -40,7 +40,7 @@ AvalonMMClass AvalonMM;
 #define SPI_ESC 0x4d
 
 /**************************************
- * Debugging facilities
+ * For debug
  *************************************/
 /* Debug Print */
 char dbuf[256];
@@ -50,13 +50,15 @@ char dbuf[256];
     Serial.write(dbuf);                                                        \
   }
 
-void AvalonMMClass::begin() {
+void AvalonMMClass::begin(int SS) {
+  SS_pin = SS;
+
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(2); // 48Mhz/2=24MHz
   SPI.setDataMode(SPI_MODE1);
-  pinMode(chipSelectPin, OUTPUT);
-  digitalWrite(chipSelectPin, HIGH);
+  pinMode(SS_pin, OUTPUT);
+  digitalWrite(SS_pin, HIGH);
 
   rstat = waitSop;
   head = 0;
@@ -270,13 +272,13 @@ uint8_t AvalonMMClass::readByte() {
 // ================================================================================
 void AvalonMMClass::writeSPI(uint8_t b) {
   uint8_t d;
-  digitalWrite(chipSelectPin, LOW);
+  digitalWrite(SS_pin, LOW);
   d = SPI.transfer(b);
 
   printSendByte(b);
   printReceiveByte(d);
 
-  digitalWrite(chipSelectPin, HIGH);
+  digitalWrite(SS_pin, HIGH);
   if (d != SPI_IDLE) {
     // push into FIFO
     fifo[head++] = d;
@@ -300,9 +302,9 @@ uint8_t AvalonMMClass::readSPI() {
   while (d == SPI_IDLE && timeout--) {
     USBBlaster.loop();
 
-    digitalWrite(chipSelectPin, LOW);
+    digitalWrite(SS_pin, LOW);
     d = SPI.transfer(SPI_IDLE);
-    digitalWrite(chipSelectPin, HIGH);
+    digitalWrite(SS_pin, HIGH);
     // if (d == SPI_IDLE) {
     //   blasterWait(10);
     // }
@@ -313,6 +315,20 @@ uint8_t AvalonMMClass::readSPI() {
   return d;
 }
 
+// ================================================================================
+// USB Blaster
+// ================================================================================
+void AvalonMMClass::blasterWait(int n) {
+  int i;
+  for (i = 0; i < n; i += 10) {
+    USBBlaster.loop();
+    delay(10);
+  }
+}
+
+// ================================================================================
+// Debug facilities
+// ================================================================================
 void AvalonMMClass::printSendByte(uint8_t b) {
   if (spi_debug) {
     if (b == SPI_IDLE) {
@@ -344,10 +360,3 @@ void AvalonMMClass::printHex8(uint8_t b) {
   Serial.print(b, HEX);
 }
 
-void AvalonMMClass::blasterWait(int n) {
-  int i;
-  for (i = 0; i < n; i += 10) {
-    USBBlaster.loop();
-    delay(10);
-  }
-}

@@ -35,7 +35,7 @@ for (( i=0; i<${arraylength}; i++ ));
 do
 #update folders with real path
 folderName=${folders[i]}
-folders[i]=`find . | grep $folderName  | grep ip | head -n1`
+folders[i]=`find ./ip | grep $folderName  | grep ip | head -n1`
 done
 
 for (( i=0; i<${arraylength}; i++ ));

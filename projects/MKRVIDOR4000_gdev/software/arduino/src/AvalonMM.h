@@ -10,8 +10,8 @@
 class AvalonMMClass {
 public:
   uint8_t spi_debug = 0;
-  int chipSelectPin = 7;
-  void begin();
+  int SS_pin = 7;
+  void begin(int SS = 7);
   void memoryDump(uint32_t base, uint32_t size);
   uint16_t read(uint8_t ch, uint32_t addr);
   uint16_t write(uint8_t ch, uint32_t addr, uint8_t dat);

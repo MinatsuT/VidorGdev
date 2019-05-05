@@ -19,103 +19,8 @@
 */
 
 module MKRVIDOR4000_top (
-         // system signals
-         input         iCLK,
-         input         iRESETn,
-         input         iSAM_INT,
-         output        oSAM_INT,
-
-         // SDRAM
-         output        oSDRAM_CLK,
-         output [11:0] oSDRAM_ADDR,
-         output [1:0]  oSDRAM_BA,
-         output        oSDRAM_CASn,
-         output        oSDRAM_CKE,
-         output        oSDRAM_CSn,
-         inout  [15:0] bSDRAM_DQ,
-         output [1:0]  oSDRAM_DQM,
-         output        oSDRAM_RASn,
-         output        oSDRAM_WEn,
-
-         // SAM D21 PINS
-         inout         bMKR_AREF,
-         inout  [6:0]  bMKR_A,
-         inout  [14:0] bMKR_D,
-
-         // Mini PCIe
-         inout         bPEX_RST,
-         inout         bPEX_PIN6,
-         inout         bPEX_PIN8,
-         inout         bPEX_PIN10,
-         input         iPEX_PIN11,
-         inout         bPEX_PIN12,
-         input         iPEX_PIN13,
-         inout         bPEX_PIN14,
-         inout         bPEX_PIN16,
-         inout         bPEX_PIN20,
-         input         iPEX_PIN23,
-         input         iPEX_PIN25,
-         inout         bPEX_PIN28,
-         inout         bPEX_PIN30,
-         input         iPEX_PIN31,
-         inout         bPEX_PIN32,
-         input         iPEX_PIN33,
-         inout         bPEX_PIN42,
-         inout         bPEX_PIN44,
-         inout         bPEX_PIN45,
-         inout         bPEX_PIN46,
-         inout         bPEX_PIN47,
-         inout         bPEX_PIN48,
-         inout         bPEX_PIN49,
-         inout         bPEX_PIN51,
-
-         // NINA interface
-         inout         bWM_PIO1,
-         inout         bWM_PIO2,
-         inout         bWM_PIO3,
-         inout         bWM_PIO4,
-         inout         bWM_PIO5,
-         inout         bWM_PIO7,
-         inout         bWM_PIO8,
-         inout         bWM_PIO18,
-         inout         bWM_PIO20,
-         inout         bWM_PIO21,
-         inout         bWM_PIO27,
-         inout         bWM_PIO28,
-         inout         bWM_PIO29,
-         inout         bWM_PIO31,
-         input         iWM_PIO32,
-         inout         bWM_PIO34,
-         inout         bWM_PIO35,
-         inout         bWM_PIO36,
-         input         iWM_TX,
-         inout         oWM_RX,
-         inout         oWM_RESET,
-
-         // HDMI output
-         output [2:0]  oHDMI_TX,
-         output        oHDMI_CLK,
-
-         inout         bHDMI_SDA,
-         inout         bHDMI_SCL,
-
-         input         iHDMI_HPD,
-
-         // MIPI input
-         input  [1:0]  iMIPI_D,
-         input         iMIPI_CLK,
-         inout         bMIPI_SDA,
-         inout         bMIPI_SCL,
-         inout  [1:0]  bMIPI_GP,
-
-         // Q-SPI Flash interface
-         output        oFLASH_SCK,
-         output        oFLASH_CS,
-         inout         oFLASH_MOSI,
-         inout         iFLASH_MISO,
-         inout         oFLASH_HOLD,
-         inout         oFLASH_WP
-
+         // Cyclone10LP MKR VIDOR 4000 general port definition
+`include "Cyclone10LP_MKR_VIDOR_4000.vh"
        );
 
 // signal declaration
@@ -146,13 +51,46 @@ VID_PLL PLL_inst_vid (
 
 // SPI Avlon-MM bridge
 wire wSS,wMOSI,wSCK,wMISO;
-assign bMKR_D[7] = 1'bz;
-assign wSS   = bMKR_D[7];
+assign bMKR_A[6] = 1'bz;
+assign wSS   = bMKR_A[6];
 assign bMKR_D[8] = 1'bz;
 assign wMOSI = bMKR_D[8];
 assign bMKR_D[9] = 1'bz;
 assign wSCK  = bMKR_D[9];
 assign bMKR_D[10] = wMISO;
+
+// I2C bridge
+//     [SAMD]       [FPGA]         [esp32(NINA-W102)]
+// SCL 12(PA09) --> bWM_PIO21 --> IO19(21:GPIO_21)
+// SDA 11(PA08) --> bWM_PIO29 --> IO18(29:GPIO_29)
+logic wCLK_MASTER, wCLK_SLAVE;
+assign wCLK_MASTER = bMKR_D[12];
+assign bWM_PIO21 = wCLK_SLAVE;
+I2C_BRIDGE I2C_BRIDGE_inst(
+             .iCLK(iCLK),
+             .iSCL_MASTER(wCLK_MASTER),
+             .oSCL_SLAVE(wCLK_SLAVE),
+             .bPORT_A(bMKR_D[11]),
+             .bPORT_B(bWM_PIO29)
+           );
+
+// NINA UART pass-thru
+// [SAMD]       [FPGA]         [esp32(NINA-W102)]
+// PA20     --> bMKR_D[6]  --> IO0(27:SYS_BOOT/GPIO_27)
+assign bMKR_D[6] = 1'bZ;
+assign bWM_PIO27 = bMKR_D[6];
+
+// PA21     --> bMKR_D[7]  --> EN(19:RESET_N)
+assign bMKR_D[7] = 1'bZ;
+assign oWM_RESET = bMKR_D[7];
+
+// PB23(RX) --> bMKR_D[13] --> IO3(23:UART_RXD/GPIO_23)
+assign bMKR_D[13] = 1'bZ;
+assign oWM_RX = bMKR_D[13];
+
+// PB22(TX) <-- bMKR_D[14] <-- IO1(22:UART_TXD/GPIO_22)
+assign bMKR_D[14] = iWM_TX;
+
 
 // PIO
 wire wPIO;
@@ -201,12 +139,12 @@ SCANLINE (
 
 // RESET
 reg [5:0] rRESETCNT;
-assign bMKR_D[6] = 1'bz;
+assign bMKR_A[5] = 1'bz;
 always @(posedge wMEM_CLK) begin
   if (!rRESETCNT[5]) begin
     rRESETCNT<=rRESETCNT+1'd1;
   end
-  if (bMKR_D[6]) begin // soft reset
+  if (bMKR_A[5]) begin // soft reset
     rRESETCNT <= 6'd0;
   end
 end

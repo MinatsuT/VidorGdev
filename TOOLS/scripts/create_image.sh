@@ -1,3 +1,10 @@
+if [ `quartus_sh --version | grep Lite | wc -l` == "1" ]; then
+# compile for lite version
+if [ -z $FORCE_FULL ]; then
+LITE="_lite"
+fi
+fi
+
 FOLDER_NAME=${PWD##*/}
 if [ x$PROJECT_NAME == x ]; then
 PROJECT_NAME=$FOLDER_NAME$LITE
