@@ -31,7 +31,7 @@
   logic [pADDR_WIDTH-1:0] rTAIL = 0;
   wire [pADDR_WIDTH-1:0] wWADDR = rHEAD;
   wire [pADDR_WIDTH-1:0] wRADDR;
-  wire [pADDR_WIDTH-1:0] wDAT_LEN = rHEAD-rTAIL;
+  (* keep *) wire [pADDR_WIDTH-1:0] wDAT_LEN = rHEAD-rTAIL;
   assign oPIX_FULL = (wDAT_LEN==(512-1));
   wire wSCANLINE_START;
   wire [14:0] wSCANLINE_RGB;
@@ -78,7 +78,7 @@
       // Data written to FB
       rSCANLINE_START <= wSCANLINE_START;
       rSCANLINE_RGB <= wSCANLINE_RGB;
-      // Sync to a START marker pixel. (The marker pixsel itself is not displayed.)
+      // Sync to START marker pixel. (The marker pixsel itself is not displayed.)
       if (wSCANLINE_START) begin
         rSCANLINE_COL <= 0;
         rSCANLINE_ROW <= 0;
@@ -89,7 +89,7 @@
   end
 
   // Output FIFO
-  wire wPIX2FB_RDEMPTY;
+  (* keep *) wire wPIX2FB_RDEMPTY;
   wire wPIX2FB_RDREQ = !wPIX2FB_RDEMPTY && iFB_READY;
   wire [15:0] wPIX2FB_DATA;
   pix2fbfifo pix2fbfifo_inst (
