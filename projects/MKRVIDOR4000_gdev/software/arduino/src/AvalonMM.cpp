@@ -320,9 +320,9 @@ uint8_t AvalonMMClass::readSPI() {
 // ================================================================================
 void AvalonMMClass::blasterWait(int n) {
   int i;
-  for (i = 0; i < n; i += 10) {
+  for (i = 0; i < n; i += 1) {
     USBBlaster.loop();
-    delay(10);
+    delay(1);
   }
 }
 

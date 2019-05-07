@@ -11,8 +11,8 @@
 #include "map1.h"          // 200x200 map
 #include "mapchip_light.h" // 9 BG chrs
 
-// The following pins are used for communication between SAMD and FPGA internally,
-// don't connect any external devices to them.
+// The following Arduino pins are internally used for communications
+// between SAMD and FPGA , don't connect any external devices to them.
 //  8 SPI MOSI for AvalonMM
 //  9 SPI SCK for AvalonMM
 // 10 SPI MISO for AvalonMM
@@ -21,7 +21,7 @@
 // 20(A5) reset of FPGA
 // 21(A6) SPI SS for AvalonMM
 
-// NINA's UART and reset pins are exposed as follows:
+// NINA's UART and reset pins are exposed to following Arduino pins:
 //  6 IO0 of NINA
 //  7 EN of NINA
 // 13 RX of NINA
@@ -41,10 +41,9 @@ vec2f p{1024, 1024};
 // Setup
 // ==================================================
 void setup() {
-  Gdev.begin();
-
   USBBlaster.setOutEpSize(60);
   USBBlaster.begin(1);
+  Gdev.begin(1);
 
   Serial.begin(9600);
   // while (!Serial) {
@@ -66,11 +65,15 @@ void setup() {
 // Loop
 // ==================================================
 void loop() {
+  int8_t resetFlag = 0;
+
   // Wait until fpga comes up
   do {
     Serial.println("Waiting for FPGA comes up ...");
     blasterWait(1000);
-    serialCheck();
+    if (resetFlag = serialCheck()) {
+      break;
+    }
   } while (AvalonMM.read(0, 0x00000010) == 0xffff);
   Serial.println("FPGA is ready.");
 
@@ -78,24 +81,26 @@ void loop() {
   AvalonMM.write(0, PIO_DIR, PIO_DIR_OUT);
 
   // Set BG view
+  Serial.println("Set initial BG view.");
   bgset(2048, 2048, 320 / 2, 240 / 2, 0, 1 / 14.5);
 
   // Set PCG
+  Serial.println("Transfer PCG.");
   for (int i = 0; i < 16 * 16 * 9; i++) {
     AvalonMM.write16(0, PCG + i * 2, mapchip_light[i]);
-    USBBlaster.loop();
   }
 
   // Set BG
+  Serial.println("Transfer BG.");
   for (int y = 0; y < 200; y++) {
     for (int x = 0; x < 200; x++) {
       uint32_t addr = BG0 + ((y + 26) * 256 + (x + 26)) * 2;
       AvalonMM.write16(0, addr, map1[y * 200 + x]);
-      USBBlaster.loop();
     }
   }
 
-  while (1) {
+  Serial.println("Start loop.");
+  while (!resetFlag) {
     USBBlaster.loop();
 
     // Check whether FPGA is alive.
@@ -105,7 +110,9 @@ void loop() {
     }
 
     // Check and handle inputs from serial console.
-    serialCheck();
+    if (resetFlag = serialCheck()) {
+      break;
+    }
 
     if (!(count % 1)) {
       uint8_t blink = (count / 1) % 2;
@@ -122,6 +129,7 @@ void loop() {
   }
 
   softReset();
+  resetFlag = 0;
   count = 0;
 }
 
@@ -230,7 +238,6 @@ uint16_t getBtn() {
   for (int i = 0; i < 3; i++) {
     Wire.requestFrom(0x28, 1);
     while (Wire.available()) {
-      USBBlaster.loop();
       if ((buf[i] = Wire.read()) == 0xff) {
         // Break whenever stop byte (0xff) appeared.
         break;
@@ -248,15 +255,13 @@ uint16_t getBtn() {
 // ==================================================
 // Serial console input handling
 // ==================================================
-void serialCheck() {
-  uint8_t flag = 0;
+uint8_t serialCheck() {
+  uint8_t reset = 0;
   while (Serial.available() > 0) {
-    flag = 1;
+    reset = 1;
     Serial.read();
   }
-  if (flag) {
-    softReset();
-  }
+  return reset;
 }
 
 void softReset() {

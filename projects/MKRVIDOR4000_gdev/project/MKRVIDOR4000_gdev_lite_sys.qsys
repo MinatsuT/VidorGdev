@@ -559,7 +559,7 @@
   <parameter name="pVSS" value="490" />
   <parameter name="pVTOTAL" value="525" />
  </module>
- <module name="GFX_HW" kind="GFX" version="1.0" enabled="1">
+ <module name="GFX_HW" kind="GFX" version="1.0" enabled="0">
   <parameter name="pADDRESS_BITS" value="22" />
   <parameter name="pFB_OFFSET" value="614400" />
   <parameter name="pFB_SIZE" value="307200" />

@@ -77,7 +77,7 @@
   // state machine
   // ================================================================================
   // state definition
-  typedef enum logic [1:0] { sPIX_REQ, sPIX_WAIT, sPIX_OUT } tSTATE;
+  typedef enum logic [1:0] { sPOS_UPD, sPIX_REQ, sPIX_WAIT, sPIX_OUT } tSTATE;
   
   // state variables
   //(* preserve *)
@@ -88,10 +88,11 @@
   // next state
   always_comb begin
     case (rSTATE)
+      sPOS_UPD:  wNEXT_STATE = sPIX_REQ;
       sPIX_REQ:  wNEXT_STATE = sPIX_WAIT;
       sPIX_WAIT: wNEXT_STATE = (wBG0_READY) ? sPIX_OUT : sPIX_WAIT;
-      sPIX_OUT:  wNEXT_STATE = (!iPIX_FULL) ? sPIX_REQ : sPIX_OUT;
-      default: wNEXT_STATE = sPIX_REQ;
+      sPIX_OUT:  wNEXT_STATE = (!iPIX_FULL) ? sPOS_UPD : sPIX_OUT;
+      default: wNEXT_STATE = sPOS_UPD;
     endcase
   end
   
@@ -114,9 +115,6 @@
   
   // BG0
   // --------------------------------------------------------------------------------
-  logic wBG0_PIX_MOVE;
-  // assign wBG0_PIX_MOVE = (rSTATE==sPIX_WAIT & wNEXT_STATE==sPIX_OUT) ? 1'b1 : 1'b0;
-  assign wBG0_PIX_MOVE = (wNEXT_STATE==sPIX_REQ);
   logic wBG0_RGB_REQ;
   assign wBG0_RGB_REQ = (rSTATE==sPIX_REQ) ? 1'b1 : 1'b0;
   
@@ -134,7 +132,7 @@
       rY <= 1'b0;
       rPIX_START <= 1'b1;
       rLINE_START <= 1'b0;
-    end else if (wNEXT_STATE==sPIX_REQ) begin
+    end else if (wNEXT_STATE==sPOS_UPD) begin
       rPIX_START <= 1'b0;
       rLINE_START <= 1'b0;
       rX <= rX + 1'b1;
@@ -175,9 +173,8 @@
   ) BG0 (
   .iCLOCK(iCLOCK),                                // clock
   .iRESET(iRESET),                                // reset
-  .iPIX_MOVE(wBG0_PIX_MOVE),                         // move pix pos to next
-  .iSTART(rPIX_START),                            // Scan start signal
-  .iLINE_START(rLINE_START),                      // Line start signal
+  .iX(rX),
+  .iY(rY),
   .iRGB_REQ(wBG0_RGB_REQ),                          // request for next RGB
   .iREG_ADDR(iAVL_ADDRESS[2:0]),                  // register addr
   .iREG_DATA(iAVL_WRITE_DATA),                    // register data
