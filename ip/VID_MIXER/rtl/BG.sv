@@ -15,6 +15,7 @@
     input iCLOCK, // clock
     input iRESET, // reset
     
+    input iPIX_START, // next scan position is TOP-LEFT
     input [cW_WIDTH-1:0] iX, // coordinates of the pixel to be rendered
     input [cH_WIDTH-1:0] iY,
     
@@ -40,9 +41,9 @@
     // ================================================================================
     // registers
     // ================================================================================
-    tVEC_2D rO; // scan origin
-    tVEC_2D rU; // a unit vector of horizontal axis for scan
-    tVEC_2D rV; // a unit vector of vertical axis for scan
+    tVEC_2D rO,rO_tmp; // scan origin
+    tVEC_2D rU,rU_tmp; // a unit vector of horizontal axis for scan
+    tVEC_2D rV,rV_tmp; // a unit vector of vertical axis for scan
     
     // register addresses
     enum { OX,OY,UX,UY,VX,VY } eREG_ADDR;
@@ -50,31 +51,41 @@
     // register set/reset
     always_ff @(posedge iCLOCK) begin
         if (iRESET) begin
-            rO.x <= 0;
-            rO.y <= 0;
-            rU.x <= 32'h00001000;
-            rU.y <= 0;
-            rV.x <= 0;
-            rV.y <= 32'h00001000;
+            rO_tmp.x <= 0;
+            rO_tmp.y <= 0;
+            rU_tmp.x <= 32'h00001000;
+            rU_tmp.y <= 0;
+            rV_tmp.x <= 0;
+            rV_tmp.y <= 32'h00001000;
         end else begin
             if (iREG_WRITE) begin
                 case (iREG_ADDR)
-                    OX: rO.x <= iREG_DATA;
-                    OY: rO.y <= iREG_DATA;
-                    UX: rU.x <= iREG_DATA;
-                    UY: rU.y <= iREG_DATA;
-                    VX: rV.x <= iREG_DATA;
-                    VY: rV.y <= iREG_DATA;
+                    OX: rO_tmp.x <= iREG_DATA;
+                    OY: rO_tmp.y <= iREG_DATA;
+                    UX: rU_tmp.x <= iREG_DATA;
+                    UY: rU_tmp.y <= iREG_DATA;
+                    VX: rV_tmp.x <= iREG_DATA;
+                    VY: rV_tmp.y <= iREG_DATA;
                     default:;
                 endcase
             end
         end
     end 
-    
+        
+    // register update
+    // --------------------------------------------------------------------------------
+    always_ff @(posedge iCLOCK) begin
+        if (iPIX_START) begin
+            rO <= rO_tmp;
+            rU <= rU_tmp;
+            rV <= rV_tmp;
+        end
+    end
+
     // ================================================================================
     // working variables
     // ================================================================================
-    tVEC_2D rP; // scanning point
+    (* preserve *) tVEC_2D rP; // scanning point
     
     // clipping detection
     // --------------------------------------------------------------------------------
@@ -147,7 +158,7 @@
             // rP.y <= rO.y + ((rU.y)*tCOORD'(iX) + (rV.y)*tCOORD'(iY));
         end
     end
-
+    
     // offscreen flag
     // --------------------------------------------------------------------------------
     always_ff @(posedge iCLOCK) begin
@@ -155,7 +166,7 @@
             rOFFSCREEN <= wOFFSCREEN;
         end
     end
-
+    
     // --------------------------------------------------------------------------------
     // SDRAM read address
     // --------------------------------------------------------------------------------
@@ -176,7 +187,7 @@
             rSCR_ADDR <= wSCR_ADDR;
         end
     end
-
+    
     // PCG number
     // --------------------------------------------------------------------------------
     tPCG rPCG;
@@ -185,7 +196,7 @@
             rPCG <= iSDRAM_READ_DATA;
         end
     end
-
+    
     // PCG address
     // --------------------------------------------------------------------------------
     (* keep *) logic [cCHR_W_WIDTH-1:0] wCHR_X;

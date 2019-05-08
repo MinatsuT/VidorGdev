@@ -173,6 +173,7 @@
   ) BG0 (
   .iCLOCK(iCLOCK),                                // clock
   .iRESET(iRESET),                                // reset
+  .iPIX_START(rPIX_START),
   .iX(rX),
   .iY(rY),
   .iRGB_REQ(wBG0_RGB_REQ),                          // request for next RGB
