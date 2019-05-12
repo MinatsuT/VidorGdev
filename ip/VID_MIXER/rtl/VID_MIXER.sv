@@ -152,24 +152,40 @@
     end
   end
   
-  // Counter for check
-  // ----------------------------------------
-  (* noprune *) logic [31:0] rCHECK_COUNTER;
-  always_ff @(posedge iCLOCK) begin
-    if (iRESET) begin
-      rCHECK_COUNTER <= 1'b0;
-    end else if (oPIX_WRITE) begin
-      rCHECK_COUNTER <= (rPIX_START) ? 1'b0 : rCHECK_COUNTER + 1'b1;
-    end
-  end
-  
   // ----------------------------------------
   //
   // BG renderer
   //
   // ----------------------------------------
   BG #(
-  .pBG_NUM(0)
+  .pBG_NUM(1)
+  ) BG0 (
+  .iCLOCK(iCLOCK),                                // clock
+  .iRESET(iRESET),                                // reset
+  .iPIX_START(rPIX_START),
+  .iX(rX),
+  .iY(rY),
+  .iRGB_REQ(wBG0_RGB_REQ),                          // request for next RGB
+  .iREG_ADDR(iAVL_ADDRESS[2:0]),                  // register addr
+  .iREG_DATA(iAVL_WRITE_DATA),                    // register data
+  .iREG_WRITE(iAVL_WRITE),                        // register write
+  .oOFFSCREEN(wBG0_OFFSCREEN),                    // offscreen flag
+  .oRGB_WRITE(wBG0_RGB_WRITE),                    // RGB write strobe
+  .oRGB_WRITE_DATA(wBG0_RGB),                     // RGB data
+  .oSDRAM_ADDRESS(oSDRAM_ADDRESS),                // SDRAM.address
+  .oSDRAM_READ(oSDRAM_READ),                      //      .read
+  .iSDRAM_WAIT_REQUEST(iSDRAM_WAIT_REQUEST),      //      .waitrequest
+  .iSDRAM_READ_DATA(iSDRAM_READ_DATA),            //      .readdata
+  .iSDRAM_READ_DATA_VALID(iSDRAM_READ_DATA_VALID) //      .readdatavalid
+  );
+  
+  // ----------------------------------------
+  //
+  // Sprite renderer
+  //
+  // ----------------------------------------
+  SPRITE #(
+  .pSPRITE_NUM(1)
   ) BG0 (
   .iCLOCK(iCLOCK),                                // clock
   .iRESET(iRESET),                                // reset

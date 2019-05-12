@@ -71,21 +71,26 @@
             end
         end
     end 
-        
+    
     // register update
     // --------------------------------------------------------------------------------
+    logic rREG_NEED_UPDATE = 1'b0;
     always_ff @(posedge iCLOCK) begin
-        if (iPIX_START) begin
+        if (iPIX_START & rREG_NEED_UPDATE) begin
+            rREG_NEED_UPDATE <= 1'b0;
             rO <= rO_tmp;
             rU <= rU_tmp;
             rV <= rV_tmp;
         end
+        if (iREG_WRITE & iREG_ADDR==VY) begin
+            rREG_NEED_UPDATE <= 1'b1;
+        end
     end
-
+    
     // ================================================================================
     // working variables
     // ================================================================================
-    (* preserve *) tVEC_2D rP; // scanning point
+    tVEC_2D rP; // scanning point
     
     // clipping detection
     // --------------------------------------------------------------------------------
@@ -109,8 +114,8 @@
     typedef enum logic [2:0] { sIDLE, sUPD_SCADR, sCHK_OFSC, sRD_SCR, sRDWT_SCR, sRD_PCG, sRDWT_PCG, sWR_RGB } tSTATE;
     
     // state variables
-    (* preserve *) tSTATE rSTATE;
-    (* keep *) tSTATE wNEXT_STATE;
+    tSTATE rSTATE;
+    tSTATE wNEXT_STATE;
     
     // next state
     always_comb begin
@@ -173,8 +178,8 @@
     
     // BG screen address
     // --------------------------------------------------------------------------------
-    (* keep *) logic [cBG_W_WIDTH-1:0] wBG_X;
-    (* keep *) logic [cBG_H_WIDTH-1:0] wBG_Y;
+    logic [cBG_W_WIDTH-1:0] wBG_X;
+    logic [cBG_H_WIDTH-1:0] wBG_Y;
     assign wBG_X = Q2I(rP.x >> cCHR_W_WIDTH);
     assign wBG_Y = Q2I(rP.y >> cCHR_H_WIDTH);
     tADDR wSCR_ADDR;
@@ -199,11 +204,11 @@
     
     // PCG address
     // --------------------------------------------------------------------------------
-    (* keep *) logic [cCHR_W_WIDTH-1:0] wCHR_X;
-    (* keep *) logic [cCHR_H_WIDTH-1:0] wCHR_Y;
+    logic [cCHR_W_WIDTH-1:0] wCHR_X;
+    logic [cCHR_H_WIDTH-1:0] wCHR_Y;
     assign wCHR_X = Q2I(rP.x);
     assign wCHR_Y = Q2I(rP.y);
-    (* keep *) tADDR wPCG_ADDR;
+    tADDR wPCG_ADDR;
     assign wPCG_ADDR = cPCG_ADDR + (cCHR_WORDS * rPCG) + (wCHR_Y * cCHR_W) + wCHR_X;
     
     // SDRAM address

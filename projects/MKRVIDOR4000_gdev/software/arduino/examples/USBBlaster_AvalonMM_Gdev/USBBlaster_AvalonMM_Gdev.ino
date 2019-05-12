@@ -36,6 +36,8 @@ static float v = 0;
 static float a = 0.1;
 static float brk = 0.95;
 vec2f p{1024, 1024};
+static int frames;
+static unsigned long us, next_us, laps;
 
 // ==================================================
 // Setup
@@ -64,6 +66,7 @@ void setup() {
 // ==================================================
 // Loop
 // ==================================================
+static uint16_t mapBuf[200];
 void loop() {
   int8_t resetFlag = 0;
 
@@ -94,12 +97,15 @@ void loop() {
   Serial.println("Transfer BG.");
   for (int y = 0; y < 200; y++) {
     for (int x = 0; x < 200; x++) {
-      uint32_t addr = BG0 + ((y + 26) * 256 + (x + 26)) * 2;
-      AvalonMM.write16(0, addr, map1[y * 200 + x]);
+      mapBuf[x] = map1[y * 200 + x];
     }
+    uint32_t addr = BG0 + ((y + 26) * 256 + 26) * 2;
+    AvalonMM.write16n(0, addr, mapBuf, 200);
   }
 
   Serial.println("Start loop.");
+  frames = 0;
+  next_us = micros() + 1000000;
   while (!resetFlag) {
     USBBlaster.loop();
 
@@ -125,7 +131,14 @@ void loop() {
 
     count++;
 
-    blasterWait(1000 / 60); // About 1/60sec;
+    frames++;
+    if ((us = micros()) >= next_us) {
+      next_us = us + 1000000;
+      Serial.print(frames);
+      Serial.println("fps");
+      frames = 0;
+    }
+    // blasterWait(1000 / 60); // About 1/60sec;
   }
 
   softReset();
@@ -204,6 +217,7 @@ void update() {
 
 float rad(float deg) { return deg * PI / 180.0; }
 
+static uint32_t regs[6];
 void bgset(float mapx, float mapy, float hx, float hy, float th, float mag) {
   if (mag == 0) {
     return;
@@ -217,12 +231,21 @@ void bgset(float mapx, float mapy, float hx, float hy, float th, float mag) {
   float ox = mapx - hx * ux - hy * vx;
   float oy = mapy - hx * uy - hy * vy;
 
+#if 0
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_OX, fp2q(ox));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_OY, fp2q(oy));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_UX, fp2q(ux));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_UY, fp2q(uy));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_VX, fp2q(vx));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_VY, fp2q(vy));
+#endif
+  regs[0] = fp2q(ox);
+  regs[1] = fp2q(oy);
+  regs[2] = fp2q(ux);
+  regs[3] = fp2q(uy);
+  regs[4] = fp2q(vx);
+  regs[5] = fp2q(vy);
+  AvalonMM.write32n(0, BG_REG_BASE + BG_REG_OX, regs, 6);
 }
 
 int32_t fp2q(float f) {
