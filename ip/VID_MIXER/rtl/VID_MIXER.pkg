@@ -1,8 +1,8 @@
 `ifndef VID_MIXER_PKG_DEFINED
 `define VID_MIXER_PKG_DEFINED
 package VidMixer;
-    //localparam cADDR_BITS = 22;
-    localparam cADDR_BITS = 23;
+    //localparam cADDR_BITS = 22; // 4M words
+    localparam cADDR_BITS = 23; // 8M words
 
     localparam cNUM_GRP = 2;
     localparam cNUM_BG = 2;
@@ -40,7 +40,7 @@ package VidMixer;
 
     localparam cGRP_ADDR = 0;
     //localparam cPCG_ADDR = cGRP_ADDR + (cGRP_WORDS * cNUM_GRP);
-    localparam cPCG_ADDR = (24'h900000>>1);
+    localparam cPCG_ADDR = (24'h900000>>1); // on-chip memory 0x900000[in byte]
     //localparam cBG_SCR_ADDR = cPCG_ADDR + cPCG_WORDS;
     localparam cBG_SCR_ADDR = cGRP_ADDR + (cGRP_WORDS * cNUM_GRP);
 
@@ -70,9 +70,14 @@ package VidMixer;
 
     typedef logic signed [31:0] tCOORD;
     typedef logic signed [cQI-1:0] tCOORD_I;
+    typedef logic signed [63:0] tCOORD64;
 
-    function tCOORD Q_int(tCOORD x);
+    function tCOORD Q2I(tCOORD x);
         return x>>>cQF;
+    endfunction
+
+    function tCOORD_I I2Q(tCOORD_I x);
+        return x<<<cQF;
     endfunction
 
     // 2D vector
@@ -93,8 +98,8 @@ package VidMixer;
     } tVEC_2D_I;
 
     function tVEC_2D_I VEC_2D_int(tVEC_2D v);
-        VEC_2D_int.x = Q_int(v.x);
-        VEC_2D_int.y = Q_int(v.y);
+        VEC_2D_int.x = Q2I(v.x);
+        VEC_2D_int.y = Q2I(v.y);
     endfunction
 
 endpackage

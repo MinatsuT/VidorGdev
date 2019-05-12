@@ -40,14 +40,21 @@ AvalonMMClass AvalonMM;
 #define SPI_ESC 0x4d
 
 /**************************************
+ * Variables
+ *************************************/
+static uint8_t header[HEADER_SIZE];
+static uint16_t _endian = 1;
+#define IS_LITTLE_ENDIAN (*(char *)&_endian)
+
+/**************************************
  * For debug
  *************************************/
 /* Debug Print */
 char dbuf[256];
-#define DP(...)                                                                \
-  {                                                                            \
-    sprintf(dbuf, __VA_ARGS__);                                                \
-    Serial.write(dbuf);                                                        \
+#define DP(...)                                                                                                                                                \
+  {                                                                                                                                                            \
+    sprintf(dbuf, __VA_ARGS__);                                                                                                                                \
+    Serial.write(dbuf);                                                                                                                                        \
   }
 
 void AvalonMMClass::begin(int SS) {
@@ -55,7 +62,7 @@ void AvalonMMClass::begin(int SS) {
 
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
-  SPI.setClockDivider(2); // 48Mhz/2=24MHz
+  SPI.setClockDivider(4); // 48Mhz/4=12MHz
   SPI.setDataMode(SPI_MODE1);
   pinMode(SS_pin, OUTPUT);
   digitalWrite(SS_pin, HIGH);
@@ -142,6 +149,29 @@ uint16_t AvalonMMClass::write16(uint8_t ch, uint32_t addr, uint16_t dat) {
   return buf[2] << 8 | buf[3]; // size
 }
 
+// write 16bit data x n
+// --------------------------------------------------------------------------------
+uint16_t AvalonMMClass::write16n(uint8_t ch, uint32_t addr, uint16_t *dat, uint16_t n) {
+  uint8_t buf[4];
+
+  uint16_t size = n * sizeof(*dat);
+  header[0] = TRANSACTION_WRITE_INC_ADDR;
+  header[1] = 0;
+  header[2] = (size >> (8 * 1)) & 0xff; // size
+  header[3] = (size >> (8 * 0)) & 0xff; // size
+  header[4] = (addr >> (8 * 3)) & 0xff;
+  header[5] = (addr >> (8 * 2)) & 0xff;
+  header[6] = (addr >> (8 * 1)) & 0xff;
+  header[7] = (addr >> (8 * 0)) & 0xff;
+
+  writePacketN(ch, (uint8_t *)dat, sizeof(*dat), n);
+  // read 4 bytes response
+  for (int i = 0; i < 4; i++) {
+    buf[i] = readPacket();
+  }
+  return buf[2] << 8 | buf[3]; // size
+}
+
 // write 32bit data
 // --------------------------------------------------------------------------------
 uint16_t AvalonMMClass::write32(uint8_t ch, uint32_t addr, uint32_t dat) {
@@ -164,6 +194,29 @@ uint16_t AvalonMMClass::write32(uint8_t ch, uint32_t addr, uint32_t dat) {
   buf[11] = (dat >> (8 * 3)) & 0xff;
 
   writePacket(ch, buf, HEADER_SIZE + 4);
+  // read 4 bytes response
+  for (int i = 0; i < 4; i++) {
+    buf[i] = readPacket();
+  }
+  return buf[2] << 8 | buf[3]; // size
+}
+
+// write 32bit data x n
+// --------------------------------------------------------------------------------
+uint16_t AvalonMMClass::write32n(uint8_t ch, uint32_t addr, uint32_t *dat, uint16_t n) {
+  uint8_t buf[4];
+
+  uint16_t size = n * sizeof(*dat);
+  header[0] = TRANSACTION_WRITE_INC_ADDR;
+  header[1] = 0;
+  header[2] = (size >> (8 * 1)) & 0xff; // size
+  header[3] = (size >> (8 * 0)) & 0xff; // size
+  header[4] = (addr >> (8 * 3)) & 0xff;
+  header[5] = (addr >> (8 * 2)) & 0xff;
+  header[6] = (addr >> (8 * 1)) & 0xff;
+  header[7] = (addr >> (8 * 0)) & 0xff;
+
+  writePacketN(ch, (uint8_t *)dat, sizeof(*dat), n);
   // read 4 bytes response
   for (int i = 0; i < 4; i++) {
     buf[i] = readPacket();
@@ -204,6 +257,33 @@ void AvalonMMClass::writePacket(uint8_t ch, uint8_t *p, uint16_t len) {
   }
   writeByte(EOP);
   writeData(*p++);
+}
+
+void AvalonMMClass::writePacketN(uint8_t ch, uint8_t *dat, uint8_t unit, uint16_t len) {
+  uint16_t i, j;
+  writeByte(SOP);
+  writeByte(CH_INDICATOR);
+  writeByte(ch);
+
+  for (i = 0; i < HEADER_SIZE; i++) {
+    if (i == HEADER_SIZE - 1) {
+      writeByte(EOP);
+    }
+    writeData(header[i]);
+  }
+
+  for (i = 0; i < len; i++) {
+    for (j = 0; j < unit; j++) {
+      if (i == len - 1 && j == unit - 1) {
+        writeByte(EOP);
+      }
+      if (IS_LITTLE_ENDIAN) {
+        writeData(dat[i * unit + j]);
+      } else {
+        writeData(dat[i * unit + unit - 1 - j]);
+      }
+    }
+  }
 }
 
 uint16_t AvalonMMClass::readPacket() {
@@ -288,7 +368,7 @@ void AvalonMMClass::writeSPI(uint8_t b) {
 
 uint8_t AvalonMMClass::readSPI() {
   uint8_t d;
-  uint32_t timeout = 5000;
+  uint32_t timeout = 64;
 
   // data in the FIFO
   if (FIFO_BYTES != 0) {
@@ -320,9 +400,9 @@ uint8_t AvalonMMClass::readSPI() {
 // ================================================================================
 void AvalonMMClass::blasterWait(int n) {
   int i;
-  for (i = 0; i < n; i += 10) {
+  for (i = 0; i < n; i += 1) {
     USBBlaster.loop();
-    delay(10);
+    delay(1);
   }
 }
 
@@ -359,4 +439,3 @@ void AvalonMMClass::printHex8(uint8_t b) {
   }
   Serial.print(b, HEX);
 }
-

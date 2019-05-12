@@ -11,8 +11,8 @@
 #include "map1.h"          // 200x200 map
 #include "mapchip_light.h" // 9 BG chrs
 
-// The following pins are used for communication between SAMD and FPGA internally,
-// don't connect any external devices to them.
+// The following Arduino pins are internally used for communications
+// between SAMD and FPGA , don't connect any external devices to them.
 //  8 SPI MOSI for AvalonMM
 //  9 SPI SCK for AvalonMM
 // 10 SPI MISO for AvalonMM
@@ -21,7 +21,7 @@
 // 20(A5) reset of FPGA
 // 21(A6) SPI SS for AvalonMM
 
-// NINA's UART and reset pins are exposed as follows:
+// NINA's UART and reset pins are exposed to following Arduino pins:
 //  6 IO0 of NINA
 //  7 EN of NINA
 // 13 RX of NINA
@@ -36,15 +36,16 @@ static float v = 0;
 static float a = 0.1;
 static float brk = 0.95;
 vec2f p{1024, 1024};
+static int frames;
+static unsigned long us, next_us, laps;
 
 // ==================================================
 // Setup
 // ==================================================
 void setup() {
-  Gdev.begin();
-
   USBBlaster.setOutEpSize(60);
   USBBlaster.begin(1);
+  Gdev.begin(1);
 
   Serial.begin(9600);
   // while (!Serial) {
@@ -65,12 +66,17 @@ void setup() {
 // ==================================================
 // Loop
 // ==================================================
+static uint16_t mapBuf[200];
 void loop() {
+  int8_t resetFlag = 0;
+
   // Wait until fpga comes up
   do {
     Serial.println("Waiting for FPGA comes up ...");
     blasterWait(1000);
-    serialCheck();
+    if (resetFlag = serialCheck()) {
+      break;
+    }
   } while (AvalonMM.read(0, 0x00000010) == 0xffff);
   Serial.println("FPGA is ready.");
 
@@ -78,24 +84,29 @@ void loop() {
   AvalonMM.write(0, PIO_DIR, PIO_DIR_OUT);
 
   // Set BG view
+  Serial.println("Set initial BG view.");
   bgset(2048, 2048, 320 / 2, 240 / 2, 0, 1 / 14.5);
 
   // Set PCG
+  Serial.println("Transfer PCG.");
   for (int i = 0; i < 16 * 16 * 9; i++) {
     AvalonMM.write16(0, PCG + i * 2, mapchip_light[i]);
-    USBBlaster.loop();
   }
 
   // Set BG
+  Serial.println("Transfer BG.");
   for (int y = 0; y < 200; y++) {
     for (int x = 0; x < 200; x++) {
-      uint32_t addr = BG0 + ((y + 26) * 256 + (x + 26)) * 2;
-      AvalonMM.write16(0, addr, map1[y * 200 + x]);
-      USBBlaster.loop();
+      mapBuf[x] = map1[y * 200 + x];
     }
+    uint32_t addr = BG0 + ((y + 26) * 256 + 26) * 2;
+    AvalonMM.write16n(0, addr, mapBuf, 200);
   }
 
-  while (1) {
+  Serial.println("Start loop.");
+  frames = 0;
+  next_us = micros() + 1000000;
+  while (!resetFlag) {
     USBBlaster.loop();
 
     // Check whether FPGA is alive.
@@ -105,7 +116,9 @@ void loop() {
     }
 
     // Check and handle inputs from serial console.
-    serialCheck();
+    if (resetFlag = serialCheck()) {
+      break;
+    }
 
     if (!(count % 1)) {
       uint8_t blink = (count / 1) % 2;
@@ -118,10 +131,18 @@ void loop() {
 
     count++;
 
-    blasterWait(1000 / 60); // About 1/60sec;
+    frames++;
+    if ((us = micros()) >= next_us) {
+      next_us = us + 1000000;
+      Serial.print(frames);
+      Serial.println("fps");
+      frames = 0;
+    }
+    // blasterWait(1000 / 60); // About 1/60sec;
   }
 
   softReset();
+  resetFlag = 0;
   count = 0;
 }
 
@@ -196,6 +217,7 @@ void update() {
 
 float rad(float deg) { return deg * PI / 180.0; }
 
+static uint32_t regs[6];
 void bgset(float mapx, float mapy, float hx, float hy, float th, float mag) {
   if (mag == 0) {
     return;
@@ -209,12 +231,21 @@ void bgset(float mapx, float mapy, float hx, float hy, float th, float mag) {
   float ox = mapx - hx * ux - hy * vx;
   float oy = mapy - hx * uy - hy * vy;
 
+#if 0
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_OX, fp2q(ox));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_OY, fp2q(oy));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_UX, fp2q(ux));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_UY, fp2q(uy));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_VX, fp2q(vx));
   AvalonMM.write32(0, BG_REG_BASE + BG_REG_VY, fp2q(vy));
+#endif
+  regs[0] = fp2q(ox);
+  regs[1] = fp2q(oy);
+  regs[2] = fp2q(ux);
+  regs[3] = fp2q(uy);
+  regs[4] = fp2q(vx);
+  regs[5] = fp2q(vy);
+  AvalonMM.write32n(0, BG_REG_BASE + BG_REG_OX, regs, 6);
 }
 
 int32_t fp2q(float f) {
@@ -230,7 +261,6 @@ uint16_t getBtn() {
   for (int i = 0; i < 3; i++) {
     Wire.requestFrom(0x28, 1);
     while (Wire.available()) {
-      USBBlaster.loop();
       if ((buf[i] = Wire.read()) == 0xff) {
         // Break whenever stop byte (0xff) appeared.
         break;
@@ -248,15 +278,13 @@ uint16_t getBtn() {
 // ==================================================
 // Serial console input handling
 // ==================================================
-void serialCheck() {
-  uint8_t flag = 0;
+uint8_t serialCheck() {
+  uint8_t reset = 0;
   while (Serial.available() > 0) {
-    flag = 1;
+    reset = 1;
     Serial.read();
   }
-  if (flag) {
-    softReset();
-  }
+  return reset;
 }
 
 void softReset() {

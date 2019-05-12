@@ -16,7 +16,9 @@ public:
   uint16_t read(uint8_t ch, uint32_t addr);
   uint16_t write(uint8_t ch, uint32_t addr, uint8_t dat);
   uint16_t write16(uint8_t ch, uint32_t addr, uint16_t dat);
+  uint16_t write16n(uint8_t ch, uint32_t addr, uint16_t *dat, uint16_t n);
   uint16_t write32(uint8_t ch, uint32_t addr, uint32_t dat);
+  uint16_t write32n(uint8_t ch, uint32_t addr, uint32_t *dat, uint16_t n);
 
 private:
   uint8_t fifo[FIFO_LEN];
@@ -26,6 +28,8 @@ private:
   enum receiveState { waitSop, afterSop } rstat = waitSop;
 
   void writePacket(uint8_t ch, uint8_t *p, uint16_t len);
+  void writePacketN(uint8_t ch, uint8_t *dat, uint8_t unit, uint16_t len);
+
   void writeData(uint8_t b);
   void writeByte(uint8_t b);
   void writeSPI(uint8_t b);
